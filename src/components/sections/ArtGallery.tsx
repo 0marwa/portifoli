@@ -40,25 +40,37 @@ const ART_PAGES: ArtPage[] = [
   // TODO: add more pages ↓
 ];
 
+/** Accumulated deltaY required to flip one page. */
+const PAGE_DELTA_THRESHOLD = 80;
+/** Delay (ms) after entering the section before hijacking starts. */
+const ART_ENTER_DELAY_MS = 400;
+/** Extra deltaY past an edge required before Y-axis releases. */
+const ART_EXIT_DELTA = 120;
+
 export default function ArtGallery() {
   const [currentPage, setCurrentPage] = useState(0);
   const [turning, setTurning] = useState<"forward" | "back" | null>(null);
-  const activeRef = useRef(false);
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const turningRef = useRef(false); // debounce
+  const activeRef      = useRef(false);
+  const readyRef       = useRef(false);  // entry delay has elapsed
+  const sectionRef     = useRef<HTMLDivElement>(null);
+  const turningRef     = useRef(false);
+  const deltaAccRef    = useRef(0);
+  const exitDeltaRef   = useRef(0);
+  const enterTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const goToPage = useCallback(
     (next: number) => {
       if (turningRef.current) return;
       if (next < 0 || next >= ART_PAGES.length) return;
       turningRef.current = true;
+      deltaAccRef.current = 0;
       setTurning(next > currentPage ? "forward" : "back");
 
       setTimeout(() => {
         setCurrentPage(next);
         setTurning(null);
         turningRef.current = false;
-      }, 600); // matches --turn-duration below
+      }, 600);
     },
     [currentPage]
   );
@@ -68,25 +80,60 @@ export default function ArtGallery() {
     if (!section) return;
 
     const observer = new IntersectionObserver(
-      ([entry]) => { activeRef.current = entry.isIntersecting; },
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          activeRef.current    = true;
+          deltaAccRef.current  = 0;
+          exitDeltaRef.current = 0;
+          if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
+          enterTimerRef.current = setTimeout(() => {
+            readyRef.current = true;
+          }, ART_ENTER_DELAY_MS);
+        } else {
+          activeRef.current    = false;
+          readyRef.current     = false;
+          deltaAccRef.current  = 0;
+          exitDeltaRef.current = 0;
+          if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
+        }
+      },
       { threshold: 0.5 }
     );
     observer.observe(section);
 
     const onWheel = (e: WheelEvent) => {
-      if (!activeRef.current) return;
-      const atStart = currentPage === 0 && e.deltaY < 0;
+      if (!activeRef.current || !readyRef.current) return;
+
+      const atStart = currentPage === 0            && e.deltaY < 0;
       const atEnd   = currentPage === ART_PAGES.length - 1 && e.deltaY > 0;
-      if (atStart || atEnd) return; // release to page scroll
+
+      if (atStart || atEnd) {
+        exitDeltaRef.current += e.deltaY;
+        if (Math.abs(exitDeltaRef.current) < ART_EXIT_DELTA) {
+          e.preventDefault(); // hold Y scroll back
+          return;
+        }
+        exitDeltaRef.current = 0;
+        return; // release Y scroll
+      }
 
       e.preventDefault();
-      goToPage(e.deltaY > 0 ? currentPage + 1 : currentPage - 1);
+
+      // Don't stack page-turns while one is already animating
+      if (turningRef.current) return;
+
+      // Require enough intentional scroll before flipping a page
+      deltaAccRef.current += e.deltaY;
+      if (Math.abs(deltaAccRef.current) < PAGE_DELTA_THRESHOLD) return;
+
+      goToPage(deltaAccRef.current > 0 ? currentPage + 1 : currentPage - 1);
     };
 
     window.addEventListener("wheel", onWheel, { passive: false });
     return () => {
       observer.disconnect();
       window.removeEventListener("wheel", onWheel);
+      if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
     };
   }, [currentPage, goToPage]);
 

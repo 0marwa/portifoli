@@ -3,68 +3,128 @@
 import { useEffect, useRef, useCallback } from "react";
 
 /**
- * Intercepts vertical wheel/touch events and converts them to horizontal
- * progress through a set of slides.
- *
- * Returns:
- *   - containerRef  → attach to the horizontal scroll container div
- *   - isActive      → whether scroll hijacking is currently active
- *
- * Hijacking is active only while the section is in the viewport AND there are
- * still slides left to reveal. Once the last slide is visible it releases
- * vertical scroll back to the page.
+ * How many px of accumulated deltaY are needed to trigger one slide change.
  */
+const DELTA_THRESHOLD = 80;
+
+/**
+ * How long (ms) to lock out further slide changes after one is triggered.
+ * Should be ≥ the smooth-scroll animation duration.
+ */
+const COOLDOWN_MS = 750;
+
+/**
+ * How long (ms) to wait after the section enters the viewport before starting
+ * to hijack scroll. This lets any inbound scroll momentum die out so the
+ * first slide isn't consumed the moment you arrive.
+ */
+const ENTER_DELAY_MS = 400;
+
+/**
+ * How many px past an edge the user must scroll before Y-axis is released.
+ * This prevents the last/first slide from disappearing the instant it's reached.
+ */
+const EXIT_DELTA = 120;
+
 export function useHorizontalScroll(slideCount: number) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const activeRef = useRef(false);
-  const currentSlide = useRef(0);
+  const containerRef  = useRef<HTMLDivElement>(null);
+  const activeRef     = useRef(false);  // section is in viewport
+  const readyRef      = useRef(false);  // entry delay has elapsed → hijacking allowed
+  const currentSlide  = useRef(0);
+  const cooldownRef   = useRef(false);
+  const deltaAccRef   = useRef(0);      // accumulated delta for slide advances
+  const exitDeltaRef  = useRef(0);      // accumulated delta past an edge
+  const enterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scrollToSlide = useCallback((index: number) => {
     const container = containerRef.current;
     if (!container) return;
-    const slideWidth = container.offsetWidth;
-    container.scrollTo({ left: index * slideWidth, behavior: "smooth" });
+    container.scrollTo({ left: index * container.offsetWidth, behavior: "smooth" });
     currentSlide.current = index;
+
+    cooldownRef.current = true;
+    setTimeout(() => {
+      cooldownRef.current = false;
+      deltaAccRef.current = 0;
+    }, COOLDOWN_MS);
   }, []);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // IntersectionObserver: activate hijacking when section is ≥50% visible
     const observer = new IntersectionObserver(
       ([entry]) => {
-        activeRef.current = entry.isIntersecting;
+        if (entry.isIntersecting) {
+          activeRef.current    = true;
+          deltaAccRef.current  = 0;
+          exitDeltaRef.current = 0;
+          // Delay hijacking so inbound momentum doesn't consume the first slide
+          if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
+          enterTimerRef.current = setTimeout(() => {
+            readyRef.current = true;
+          }, ENTER_DELAY_MS);
+        } else {
+          activeRef.current    = false;
+          readyRef.current     = false;
+          deltaAccRef.current  = 0;
+          exitDeltaRef.current = 0;
+          cooldownRef.current  = false;
+          if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
+        }
       },
       { threshold: 0.5 }
     );
     observer.observe(container);
 
     const onWheel = (e: WheelEvent) => {
-      if (!activeRef.current) return;
+      // Not in viewport or still in entry-delay window → don't hijack
+      if (!activeRef.current || !readyRef.current) return;
 
-      const isAtStart = currentSlide.current === 0 && e.deltaY < 0;
-      const isAtEnd = currentSlide.current === slideCount - 1 && e.deltaY > 0;
+      const isAtStart = currentSlide.current === 0            && e.deltaY < 0;
+      const isAtEnd   = currentSlide.current === slideCount - 1 && e.deltaY > 0;
 
-      // Release control at the edges so the page can scroll normally
-      if (isAtStart || isAtEnd) return;
+      if (isAtStart || isAtEnd) {
+        // Block Y scroll until the user has scrolled EXIT_DELTA past the edge,
+        // so the last/first slide stays visible long enough to be seen.
+        exitDeltaRef.current += e.deltaY;
+        if (Math.abs(exitDeltaRef.current) < EXIT_DELTA) {
+          e.preventDefault(); // hold Y back
+          return;
+        }
+        // Threshold crossed → release Y scroll naturally
+        exitDeltaRef.current = 0;
+        return;
+      }
 
+      // Mid-gallery: fully hijack Y
       e.preventDefault();
-      const next = e.deltaY > 0
-        ? Math.min(currentSlide.current + 1, slideCount - 1)
-        : Math.max(currentSlide.current - 1, 0);
+      exitDeltaRef.current = 0;
 
-      scrollToSlide(next);
+      if (cooldownRef.current) return;
+
+      deltaAccRef.current += e.deltaY;
+      if (Math.abs(deltaAccRef.current) < DELTA_THRESHOLD) return;
+
+      const direction = deltaAccRef.current > 0 ? 1 : -1;
+      deltaAccRef.current = 0;
+
+      scrollToSlide(
+        Math.min(Math.max(currentSlide.current + direction, 0), slideCount - 1)
+      );
     };
 
-    // passive:false so we can call preventDefault
     window.addEventListener("wheel", onWheel, { passive: false });
 
     return () => {
       observer.disconnect();
       window.removeEventListener("wheel", onWheel);
+      if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
     };
   }, [slideCount, scrollToSlide]);
+
+  return { containerRef };
+}
 
   return { containerRef };
 }
