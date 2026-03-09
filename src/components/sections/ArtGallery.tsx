@@ -210,12 +210,12 @@ export default function ArtGallery() {
           →
         </button>
 
-        {/* ── The scrapbook page ── */}
+        {/* ── The scrapbook page — TODO: replace bg-[#faf6ee] with paper texture via backgroundImage ── */}
         <div
           className={`
             relative h-[80vh] w-[70vw] max-w-3xl
             rounded-sm border border-current/20
-            bg-[#faf6ee]           /* TODO: replace with paper texture via bg-image */
+            bg-[#faf6ee]
             shadow-[4px_4px_0_rgba(0,0,0,0.12)]
             transition-transform
             ${turning === "forward" ? "animate-page-turn-forward" : ""}
@@ -229,9 +229,7 @@ export default function ArtGallery() {
               className="absolute cursor-pointer transition-transform hover:scale-105 hover:z-10"
               style={{
                 transform: `rotate(${piece.rotation ?? 0}deg)`,
-                /* TODO: position each piece properly once you have real assets.
-                   For now they stack in the centre. Replace with absolute
-                   top/left values per piece. */
+                // TODO: set absolute top/left per piece once real assets are placed
                 top: "50%",
                 left: "50%",
                 marginTop: `-${(piece.height ?? 200) / 2}px`,
