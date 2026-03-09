@@ -84,7 +84,6 @@ export default function Contact() {
               ${state === "folding" ? "scale-y-0 opacity-0" : "scale-y-100 opacity-100"}
             `}
           >
-            {/* Paper background — TODO: replace bg-[#fdfaf4] with a paper texture via backgroundImage once ready */}
             <div
               className="
                 rounded-sm border border-current/20
