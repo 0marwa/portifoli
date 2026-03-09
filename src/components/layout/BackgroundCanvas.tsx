@@ -2,15 +2,73 @@
 
 import { useEffect, useRef } from 'react';
 
+// ─── Minimal type stubs for the dynamically-loaded p5 global ──────────────────
+// p5 is loaded at runtime via a <script> tag; we don't install @types/p5,
+// so we declare only the subset the sketch actually uses.
+
+interface P5Vector {
+  x: number;
+  y: number;
+  z: number;
+  copy(): P5Vector;
+  mult(scalar: number): void;
+  add(v: P5Vector): void;
+}
+
+interface P5Canvas {
+  style(prop: string, value: string): void;
+}
+
+interface P5 {
+  // canvas lifecycle
+  setup: () => void;
+  draw: () => void;
+  windowResized: () => void;
+
+  // dimensions
+  width: number;
+  height: number;
+  windowWidth: number;
+  windowHeight: number;
+  mouseX: number;
+  frameCount: number;
+
+  // constants
+  TWO_PI: number;
+
+  // drawing commands
+  createCanvas(w: number, h: number): P5Canvas;
+  resizeCanvas(w: number, h: number): void;
+  noStroke(): void;
+  fill(v1: number, v2?: number, v3?: number): void;
+  rect(x: number, y: number, w: number, h: number): void;
+  ellipse(x: number, y: number, d: number): void;
+
+  // math / noise
+  noise(x: number, y: number, z: number): number;
+  sin(angle: number): number;
+  cos(angle: number): number;
+  tan(angle: number): number;
+  random(min: number, max?: number): number;
+  map(value: number, start1: number, stop1: number, start2: number, stop2: number): number;
+
+  // vector factory
+  createVector(x: number, y: number, z?: number): P5Vector;
+}
+
+interface P5Constructor {
+  new (sketch: (p: P5) => void, container: HTMLElement): { remove(): void };
+}
+
 declare global {
-  interface Window { p5: any; }
+  interface Window { p5: P5Constructor; }
 }
 
 export default function BackgroundCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let p5Instance: any;
+    let p5Instance: { remove(): void } | undefined;
     let cancelled = false;
 
     function init() {
@@ -21,19 +79,22 @@ export default function BackgroundCanvas() {
         return;
       }
 
-      const p5 = window.p5;
+      const P5 = window.p5;
 
-      const sketch = (p: any) => {
-        // ── original OG variables ──────────────────────────────────────
-        let num = 2222;
-        let noiseScale = 100, noiseStrength = 1;
-        let particles: any[] = new Array(num);
+      const sketch = (p: P5) => {
+        // ── variables ──────────────────────────────────────────────────
+        const num = 2222;
+        const noiseScale = 100;
+        const noiseStrength = 1;
+        const particles: Particle[] = new Array(num);
 
-        // ── original OG Particle class ─────────────────────────────────
+        // ── Particle class ─────────────────────────────────────────────
         class Particle {
-          loc: any; dir: any; speed: number;
+          loc: P5Vector;
+          dir: P5Vector;
+          speed: number;
 
-          constructor(_loc: any, _dir: any, _speed: number) {
+          constructor(_loc: P5Vector, _dir: P5Vector, _speed: number) {
             this.loc   = _loc;
             this.dir   = _dir;
             this.speed = _speed;
@@ -46,17 +107,17 @@ export default function BackgroundCanvas() {
           }
 
           move() {
-            let angle = p.noise(
+            const angle = p.noise(
               this.loc.x / noiseScale,
               this.loc.y / noiseScale,
-              p.frameCount / noiseScale
+              p.frameCount / noiseScale,
             ) * p.TWO_PI * noiseStrength;
 
             this.dir.x = p.sin(angle);
             this.dir.y = p.tan(angle);
 
-            let vel = this.dir.copy();
-            let d = 22;
+            const vel = this.dir.copy();
+            const d = 22;
             vel.mult(this.speed * d);
             this.loc.add(vel);
           }
@@ -77,7 +138,7 @@ export default function BackgroundCanvas() {
           }
         }
 
-        // ── original OG setup ──────────────────────────────────────────
+        // ── setup ──────────────────────────────────────────────────────
         p.setup = () => {
           const cnv = p.createCanvas(p.windowWidth, p.windowHeight);
           cnv.style('position', 'fixed');
@@ -88,20 +149,20 @@ export default function BackgroundCanvas() {
           p.noStroke();
 
           for (let i = 0; i < num; i++) {
-            let loc   = p.createVector(p.random(p.width * 1.2), p.random(p.height), 2);
-            let angle = 0;
-            let dir   = p.createVector(p.cos(angle), p.sin(angle));
-            let speed = p.random(5, p.map(p.mouseX, 0, p.width, 5, 20));
+            const loc   = p.createVector(p.random(p.width * 1.2), p.random(p.height), 2);
+            const angle = 0;
+            const dir   = p.createVector(p.cos(angle), p.sin(angle));
+            const speed = p.random(5, p.map(p.mouseX, 0, p.width, 5, 20));
             particles[i] = new Particle(loc, dir, speed);
           }
         };
 
-        // ── original OG windowResized ──────────────────────────────────
+        // ── windowResized ──────────────────────────────────────────────
         p.windowResized = () => {
           p.resizeCanvas(p.windowWidth, p.windowHeight);
         };
 
-        // ── original OG draw ───────────────────────────────────────────
+        // ── draw ───────────────────────────────────────────────────────
         p.draw = () => {
           p.fill(0, 10);
           p.rect(0, 0, p.width, p.height);
@@ -112,7 +173,7 @@ export default function BackgroundCanvas() {
       };
 
       if (containerRef.current) {
-        p5Instance = new p5(sketch, containerRef.current);
+        p5Instance = new P5(sketch, containerRef.current);
       }
     }
 
