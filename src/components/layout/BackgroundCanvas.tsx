@@ -1,285 +1,249 @@
-"use client";
+'use client';
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
 
-// ─── Tuning ────────────────────────────────────────────────────────────────────
-const STAR_COUNT   = 22;
-const MOUSE_RADIUS = 110;     // px — proximity to trigger vanish
-const FADE_OUT_SPD = 0.045;   // opacity drop per frame (~60fps → ~15 frames)
-const FADE_IN_SPD  = 0.014;   // opacity rise per frame (slower = ghostly re-entry)
-const IDLE_ALPHA   = 0.72;    // max opacity at rest
-const BG           = "#0d0d0d";
-const INK          = "210,205,195"; // off-white / warm parchment RGB
-
-// ─── Types ─────────────────────────────────────────────────────────────────────
-interface Dot {
-  px: number;
-  py: number;
-  dr: number; // dot radius
-}
-
-interface Star {
-  x: number;
-  y: number;
-  size: number;        // body radius in px (inner ballpark)
-  outerScale: number;  // spike arm length = size * outerScale
-  innerRatio: number;  // inner valley radius = size * innerRatio (keeps spikes sharp)
-  numSpikes: number;   // 4 or 6
-  rotation: number;    // current rotation in radians
-  rotSpeed: number;    // radians per frame (very slow idle spin)
-  jitter: number[];    // per-spike length multiplier — slight irregularity, hand-drawn feel
-  dots: Dot[];         // precomputed stipple dots in local star space
-  opacity: number;     // current rendered opacity
-  phase: "idle" | "out" | "in";
-}
-
-// ─── Star factory ──────────────────────────────────────────────────────────────
-/**
- * Creates one star with randomised shape, size, and position.
- *
- * Shape inspired by the reference images:
- *   - 4 elongated needle-like spikes (or 6 for variety), very concave between them
- *   - Stipple/grain texture: dozens of tiny dots scattered inside the star path
- *   - Slight per-spike length jitter for an inked, hand-drawn quality
- */
-function makeStar(w: number, h: number): Star {
-  const numSpikes  = Math.random() < 0.65 ? 4 : 6;
-  const size       = 7 + Math.random() * 13;          // 7 – 20 px body
-  const outerScale = 3.0 + Math.random() * 3.2;        // 3.0 – 6.2 (needle length)
-  const innerRatio = 0.04 + Math.random() * 0.09;      // 0.04 – 0.13 → deeply concave
-  const outer      = size * outerScale;
-
-  // Per-spike length multiplier so no two spikes are identical
-  const jitter = Array.from(
-    { length: numSpikes },
-    () => 0.80 + Math.random() * 0.40,
-  );
-
-  // Precompute stipple dot positions in local space (polar → cartesian)
-  // Bias toward the interior with `r * r` so density falls off toward spike tips
-  const dotCount = 30 + Math.floor(Math.random() * 20);
-  const dots: Dot[] = Array.from({ length: dotCount }, () => {
-    const r = Math.sqrt(Math.random()) * outer * 0.68; // sqrt for even radial distribution
-    const a = Math.random() * Math.PI * 2;
-    return {
-      px: Math.cos(a) * r,
-      py: Math.sin(a) * r,
-      dr: 0.3 + Math.random() * 0.85,
-    };
-  });
-
-  return {
-    x         : Math.random() * w,
-    y         : Math.random() * h,
-    size,
-    outerScale,
-    innerRatio,
-    numSpikes,
-    rotation  : Math.random() * Math.PI * 2,
-    rotSpeed  : (Math.random() - 0.5) * 0.00035, // ±0.00035 rad/frame ≈ ±1.2°/s
-    jitter,
-    dots,
-    opacity   : IDLE_ALPHA * (0.45 + Math.random() * 0.55),
-    phase     : "idle",
-  };
-}
-
-// ─── Canvas drawing ────────────────────────────────────────────────────────────
-
-/** Builds the star polygon path WITHOUT stroking or filling. */
-function buildStarPath(ctx: CanvasRenderingContext2D, star: Star) {
-  const { size, outerScale, innerRatio, numSpikes, jitter } = star;
-  const outer = size * outerScale;
-  const inner = size * innerRatio;
-  const PI2   = Math.PI * 2;
-
-  ctx.beginPath();
-  for (let i = 0; i < numSpikes * 2; i++) {
-    // Alternate between outer tip and inner valley
-    const angle    = (i / (numSpikes * 2)) * PI2 - Math.PI / 2;
-    const isOuter  = i % 2 === 0;
-    const spikeIdx = Math.floor(i / 2);
-    const r        = isOuter ? outer * (jitter[spikeIdx] ?? 1) : inner;
-    const px       = Math.cos(angle) * r;
-    const py       = Math.sin(angle) * r;
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.closePath();
-}
-
-/**
- * Draws one star:
- *   1. Clip to star path → fill semi-transparent base + scatter stipple dots
- *   2. Stroke the outline for the sharp inked silhouette
- */
-function drawStar(ctx: CanvasRenderingContext2D, star: Star) {
-  if (star.opacity <= 0.01) return;
-
-  const { x, y, rotation, opacity, dots, size, outerScale } = star;
-  const outer = size * outerScale;
-
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(rotation);
-  ctx.globalAlpha = opacity;
-
-  // ── Clipped interior: base fill + stipple dots ──────────────────────────────
-  buildStarPath(ctx, star);
-  ctx.save();
-  ctx.clip(); // clip all subsequent draws to the star shape
-
-  // Faint base fill so the star body reads against the dark background
-  ctx.fillStyle = `rgba(${INK},0.07)`;
-  ctx.fillRect(-outer * 1.7, -outer * 1.7, outer * 3.4, outer * 3.4);
-
-  // Stipple: tiny dots scattered inside the clipped star region
-  const PI2 = Math.PI * 2;
-  for (const d of dots) {
-    ctx.beginPath();
-    ctx.arc(d.px, d.py, d.dr, 0, PI2);
-    ctx.fillStyle = `rgba(${INK},0.52)`;
-    ctx.fill();
-  }
-
-  ctx.restore(); // removes clip
-
-  // ── Stroke outline ───────────────────────────────────────────────────────────
-  buildStarPath(ctx, star);
-  ctx.strokeStyle = `rgba(${INK},0.62)`;
-  ctx.lineWidth   = 0.9;
-  ctx.stroke();
-
-  ctx.restore(); // removes translate/rotate/globalAlpha
-}
-
-// ─── Component ─────────────────────────────────────────────────────────────────
-/**
- * A fullscreen fixed canvas rendered behind all content (z-index: -10).
- *
- * On the dark #0d0d0d background, off-white sigil-stars are scattered randomly.
- * Each star slowly rotates.  When the mouse comes within MOUSE_RADIUS pixels:
- *   1. The star fades out over ~15 frames
- *   2. It teleports to a new random position (away from the cursor)
- *   3. It fades back in over ~50 frames — ghostly reappearance
- *
- * The canvas is purely decorative (pointer-events: none) and resizes with the
- * viewport via ResizeObserver.
- */
 export default function BackgroundCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d") as CanvasRenderingContext2D | null;
-    if (!ctx) return;
-    // After the null guard, reassign to a non-null const so closures see the narrowed type
-    const context: CanvasRenderingContext2D = ctx;
+    let p5Instance: any;
 
-    // Track viewport size
-    let w = window.innerWidth;
-    let h = window.innerHeight;
-    canvas.width  = w;
-    canvas.height = h;
+    import('p5').then((p5Module) => {
+      const p5 = p5Module.default;
 
-    // Initialise star field
-    const stars: Star[] = Array.from({ length: STAR_COUNT }, () => makeStar(w, h));
+      const sketch = (p: any) => {
+        const NUM = 260;
+        const NOISE_SCALE = 400;
+        let particles: any[] = [];
+        let noiseZ = 0;
 
-    // Track mouse position; start off-screen so nothing triggers at load
-    let mx = -9999;
-    let my = -9999;
-    const onMouseMove = (e: MouseEvent) => {
-      mx = e.clientX;
-      my = e.clientY;
-    };
-    window.addEventListener("mousemove", onMouseMove);
+        let glitching = false;
+        let glitchTimer = 0;
+        const GLITCH_DUR = 45;
 
-    // Resize: update canvas dimensions, keep stars in bounds
-    const ro = new ResizeObserver(() => {
-      w = window.innerWidth;
-      h = window.innerHeight;
-      canvas.width  = w;
-      canvas.height = h;
-    });
-    ro.observe(document.documentElement);
+        let regenning = false;
+        let regenTimer = 0;
+        const REGEN_DUR = 35;
 
-    // ── Animation loop ─────────────────────────────────────────────────────────
-    let rafId: number;
+        let starOpacity = 1;
 
-    function tick() {
-      // Clear to the dark base colour
-      context.fillStyle = BG;
-      context.fillRect(0, 0, w, h);
-
-      for (const star of stars) {
-        // Slow idle spin
-        star.rotation += star.rotSpeed;
-
-        const dist = Math.hypot(star.x - mx, star.y - my);
-
-        if (star.phase === "idle") {
-          // Trigger fade-out when mouse enters proximity
-          if (dist < MOUSE_RADIUS) {
-            star.phase = "out";
+        function draw4Star(outer: number, inner: number, jitter: number) {
+          p.beginShape();
+          for (let i = 0; i < 8; i++) {
+            const a = (i * p.TWO_PI) / 8;
+            const r = i % 2 === 0 ? outer : inner;
+            const j = jitter ? p.random(-jitter, jitter) : 0;
+            p.vertex(p.cos(a) * (r + j), p.sin(a) * (r + j));
           }
-        } else if (star.phase === "out") {
-          star.opacity -= FADE_OUT_SPD;
+          p.endShape(p.CLOSE);
+        }
 
-          if (star.opacity <= 0) {
-            star.opacity = 0;
-
-            // Teleport to a random position that is safely away from the cursor
-            // (try up to 20 times, then place anywhere — prevents rare infinite loop)
-            let attempts = 0;
-            do {
-              star.x = 40 + Math.random() * (w - 80);
-              star.y = 40 + Math.random() * (h - 80);
-              attempts++;
-            } while (
-              Math.hypot(star.x - mx, star.y - my) < MOUSE_RADIUS * 1.6 &&
-              attempts < 20
-            );
-
-            star.phase = "in";
+        function insideStar4(lx: number, ly: number, outer: number, inner: number) {
+          const verts = [];
+          for (let i = 0; i < 8; i++) {
+            const a = (i * p.TWO_PI) / 8;
+            const r = i % 2 === 0 ? outer : inner;
+            verts.push({ x: p.cos(a) * r, y: p.sin(a) * r });
           }
-        } else if (star.phase === "in") {
-          star.opacity += FADE_IN_SPD;
+          let inside = false;
+          const n = verts.length;
+          for (let i = 0, j = n - 1; i < n; j = i++) {
+            const xi = verts[i].x, yi = verts[i].y;
+            const xj = verts[j].x, yj = verts[j].y;
+            if (yi > ly !== yj > ly && lx < ((xj - xi) * (ly - yi)) / (yj - yi) + xi)
+              inside = !inside;
+          }
+          return inside;
+        }
 
-          if (star.opacity >= IDLE_ALPHA) {
-            star.opacity = IDLE_ALPHA;
-            star.phase   = "idle";
+        class Particle {
+          loc: any; nOff: any; vel: any;
+          sz: number; speed: number; rot: number; rotSpeed: number;
+          alpha: number; chaos: number;
+          dots: { x: number; y: number; d: number; ds: number }[];
+
+          constructor() {
+            this.loc  = p.createVector(p.random(p.width), p.random(p.height));
+            this.nOff = p.createVector(p.random(10000), p.random(10000));
+            this.vel  = p5.Vector.random2D();
+
+            const r = p.random();
+            this.sz =
+              r < 0.50 ? p.random(4,  14) :
+              r < 0.78 ? p.random(15, 36) :
+              r < 0.93 ? p.random(37, 68) :
+                         p.random(70, 120);
+
+            this.speed    = p.random(0.05, 0.35);
+            this.rot      = p.random(p.TWO_PI);
+            this.rotSpeed = p.random(-0.001, 0.001);
+            this.alpha    = p.random(70, 150);
+            this.chaos    = p.random(0.01, 0.06);
+            this.dots     = [];
+            this.buildStipple();
+          }
+
+          buildStipple() {
+            const outer = this.sz, inner = outer * 0.26;
+            let dotCount = Math.min(Math.max(Math.floor(outer * outer * 0.5), 8), 400);
+            for (let i = 0; i < dotCount * 12 && this.dots.length < dotCount; i++) {
+              const px = p.random(-outer, outer);
+              const py = p.random(-outer, outer);
+              if (insideStar4(px, py, outer, inner)) {
+                const d = p.dist(0, 0, px, py) / outer;
+                this.dots.push({ x: px, y: py, d, ds: p.random(0.3, 2.0) });
+              }
+            }
+          }
+
+          run(aScale: number) {
+            // move
+            const nx    = (this.loc.x + this.nOff.x) / NOISE_SCALE;
+            const ny    = (this.loc.y + this.nOff.y) / NOISE_SCALE;
+            const angle = p.noise(nx, ny, noiseZ) * p.TWO_PI * 2;
+            const target = p5.Vector.fromAngle(angle);
+            this.vel.lerp(target, this.chaos);
+            this.vel.setMag(this.speed);
+            this.loc.add(this.vel);
+            this.rot += this.rotSpeed;
+
+            // wrap
+            const m = this.sz + 20;
+            if (this.loc.x < -m)             this.loc.x = p.width  + m;
+            else if (this.loc.x > p.width+m)  this.loc.x = -m;
+            if (this.loc.y < -m)             this.loc.y = p.height + m;
+            else if (this.loc.y > p.height+m) this.loc.y = -m;
+
+            // draw
+            const outer = this.sz, inner = outer * 0.26;
+            const a = this.alpha * aScale;
+            p.push();
+            p.translate(this.loc.x, this.loc.y);
+            p.rotate(this.rot);
+
+            p.noStroke();
+            p.fill(5, 5, 5, a * 0.5);
+            draw4Star(outer, inner, outer * 0.03);
+
+            for (const dot of this.dots) {
+              const dotA = a * (0.9 - dot.d * 0.82);
+              if (dotA > 2) { p.fill(205, 200, 190, dotA); p.ellipse(dot.x, dot.y, dot.ds, dot.ds); }
+            }
+
+            p.stroke(160, 155, 148, a * 0.12);
+            p.strokeWeight(0.4);
+            p.noFill();
+            draw4Star(outer, inner, outer * 0.04);
+            p.noStroke();
+            p.pop();
           }
         }
 
-        drawStar(context, star);
+        function spawnAll() {
+          particles = [];
+          for (let i = 0; i < NUM; i++) particles.push(new Particle());
+        }
+
+        function runGlitch() {
+          const t = glitchTimer / GLITCH_DUR;
+          p.noStroke();
+
+          const tears = Math.floor(p.random(3, 10));
+          for (let i = 0; i < tears; i++) {
+            const sy  = p.random(p.height);
+            const sh  = p.random(1, 28);
+            const off = p.random(-80, 80) * t;
+            p.fill(255, 255, 255, p.random(15, 55) * t);
+            p.rect(off, sy, p.width, sh);
+            p.fill(0, 0, 0, p.random(40, 100) * t);
+            p.rect(-off * 0.4, sy, p.width, sh * 0.5);
+          }
+
+          const bursts = Math.floor(p.random(40, 140) * t);
+          for (let i = 0; i < bursts; i++) {
+            const v = p.random(140, 255);
+            p.fill(v, v, v, p.random(40, 130));
+            p.ellipse(p.random(p.width), p.random(p.height), p.random(1, 3.5));
+          }
+
+          const blocks = Math.floor(p.random(2, 6));
+          for (let i = 0; i < blocks; i++) {
+            const v = p.random() < 0.5 ? 255 : 0;
+            p.fill(v, v, v, p.random(30, 90) * t);
+            p.rect(p.random(p.width), p.random(p.height), p.random(10, 140), p.random(3, 22));
+          }
+        }
+
+        // scroll listener — stored so we can clean it up
+        let scrollHandler: () => void;
+
+        p.setup = () => {
+          const cnv = p.createCanvas(p.windowWidth, p.windowHeight);
+          cnv.style('position', 'fixed');
+          cnv.style('top', '0');
+          cnv.style('left', '0');
+          cnv.style('z-index', '-1');
+          cnv.style('pointer-events', 'none');
+          p.noStroke();
+          spawnAll();
+
+          scrollHandler = () => {
+            if (!glitching) {
+              glitching   = true;
+              glitchTimer = GLITCH_DUR;
+              starOpacity = 1;
+            }
+          };
+          window.addEventListener('scroll', scrollHandler, { passive: true });
+        };
+
+        p.windowResized = () => p.resizeCanvas(p.windowWidth, p.windowHeight);
+
+        p.draw = () => {
+          p.background(0);
+          noiseZ += 0.0008;
+
+          if (glitching) {
+            glitchTimer--;
+            starOpacity = Math.max(0, starOpacity - 0.15);
+            runGlitch();
+            if (glitchTimer <= 0) {
+              glitching   = false;
+              regenning   = true;
+              regenTimer  = REGEN_DUR;
+              starOpacity = 0;
+              spawnAll();
+            }
+          }
+
+          if (regenning) {
+            regenTimer--;
+            starOpacity = 1 - regenTimer / REGEN_DUR;
+            if (regenTimer <= 0) { regenning = false; starOpacity = 1; }
+          }
+
+          if (starOpacity > 0)
+            for (const particle of particles) particle.run(starOpacity);
+        };
+
+        // expose cleanup hook on the sketch so remove() tears down the listener
+        (p as any)._scrollHandler = () => scrollHandler;
+      };
+
+      if (containerRef.current) {
+        p5Instance = new p5(sketch, containerRef.current);
       }
-
-      rafId = requestAnimationFrame(tick);
-    }
-
-    tick();
+    });
 
     return () => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener("mousemove", onMouseMove);
-      ro.disconnect();
+      if (p5Instance) p5Instance.remove();
     };
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      style={{
-        position    : "fixed",
-        inset       : 0,
-        width       : "100%",
-        height      : "100%",
-        zIndex      : -10,
-        pointerEvents: "none",
-        display     : "block",
-      }}
+    <div
+      ref={containerRef}
+      style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0, zIndex: -1 }}
     />
   );
 }
