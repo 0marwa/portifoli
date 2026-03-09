@@ -13,7 +13,7 @@ interface P5Vector {
   copy(): P5Vector;
   mult(scalar: number): void;
   add(v: P5Vector): void;
-}
+} 
 
 interface P5Canvas {
   style(prop: string, value: string): void;
