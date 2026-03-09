@@ -16,7 +16,7 @@ const IMAGE_SECTIONS: SectionId[] = ["projects", "art", "photos"];
 
 /**
  * One fixed full-screen image layer per image-bearing section.
- * zIndex: -9 sits just above the canvas (zIndex: -10).
+ * zIndex: -1 sits just above the canvas (zIndex: -2).
  * Active section fades to opacity:1; others stay opacity:0.
  */
 function ImageOverlays({ active }: { active: SectionId | null }) {
@@ -26,18 +26,17 @@ function ImageOverlays({ active }: { active: SectionId | null }) {
         <div
           key={id}
           style={{
-            position          : "fixed",
-            inset             : 0,
-            zIndex            : -9,
-            backgroundImage   : `url(${SECTION_BG_IMAGE[id]})`,
-            backgroundSize    : "cover",
-            backgroundPosition: "center center",
-            backgroundAttachment: "fixed",
-            backgroundRepeat  : "no-repeat",
-            // Crossfade: 900ms feels natural for full-viewport transitions.
-            opacity   : active === id ? 1 : 0,
-            transition: "opacity 900ms ease-in-out",
-            willChange: "opacity",
+            position             : "fixed",
+            inset                : 0,
+            zIndex               : -1,
+            backgroundImage      : `url(${SECTION_BG_IMAGE[id]})`,
+            backgroundSize       : "cover",
+            backgroundPosition   : "center center",
+            backgroundAttachment : "fixed",
+            backgroundRepeat     : "no-repeat",
+            opacity              : active === id ? 1 : 0,
+            transition           : "opacity 900ms ease-in-out",
+            willChange           : "opacity",
           }}
         />
       ))}
@@ -54,16 +53,19 @@ export default function PageShell({
 
   return (
     <div className="relative min-h-screen">
-      {/* Layer -10: interactive sigil-star canvas — always visible */}
+      {/* Layer -2: interactive sigil-star canvas — always visible */}
       <BackgroundCanvas />
 
-      {/* Layer -9: section-specific photo overlays (projects / art / photos only) */}
+      {/* Layer -1: section-specific photo overlays (projects / art / photos only) */}
       <ImageOverlays active={activeSection} />
 
       <Navbar />
       <ScrollToTop />
 
-      {children}
+      {/* Layer 0+: page content */}
+      <main className="relative z-0">
+        {children}
+      </main>
     </div>
   );
 }

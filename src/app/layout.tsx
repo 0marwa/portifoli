@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
+import PageShell from "@/components/layout/PageShell";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -20,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body className={`${geist.variable} font-sans antialiased`}>
-        {children}
+        <PageShell>{children}</PageShell>
       </body>
     </html>
   );
