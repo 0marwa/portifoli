@@ -67,33 +67,34 @@ export default function AboutMe() {
               Adjust the Tailwind position classes to match your design
               once the avatar asset is in place.
         */}
+        {/* TODO: replace each value="..." with your real info */}
         <InfoBlurb
           label="Name"
-          value="Marwa"           {/* TODO: your full name */}
+          value="Marwa"
           position="top-1/4 left-[8%]"
           rotation={-4}
         />
         <InfoBlurb
           label="Role"
-          value="Developer & Creative" {/* TODO: your role / title */}
+          value="Developer & Creative"
           position="top-[15%] right-[10%]"
           rotation={3}
         />
         <InfoBlurb
           label="Based in"
-          value="——"               {/* TODO: your city / country */}
+          value="——"
           position="bottom-1/3 left-[6%]"
           rotation={-2}
         />
         <InfoBlurb
           label="Skills"
-          value="React · Next.js · Illustration" {/* TODO: your stack */}
+          value="React · Next.js · Illustration"
           position="bottom-1/4 right-[8%]"
           rotation={2}
         />
         <InfoBlurb
           label="fun fact"
-          value="——"               {/* TODO: a fun fact about you */}
+          value="——"
           position="bottom-[12%] left-1/2 -translate-x-1/2"
           rotation={-1}
         />
