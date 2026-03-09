@@ -40,37 +40,60 @@ const ART_PAGES: ArtPage[] = [
   // TODO: add more pages ↓
 ];
 
-/** Accumulated deltaY required to flip one page. */
+/** Minimum accumulated vertical scroll (px) before flipping one page. */
 const PAGE_DELTA_THRESHOLD = 80;
-/** Delay (ms) after entering the section before hijacking starts. */
+
+/**
+ * Grace period (ms) after the section enters the viewport before wheel
+ * hijacking starts — lets inbound scroll momentum die out so page 0
+ * isn't immediately consumed on arrival.
+ */
 const ART_ENTER_DELAY_MS = 400;
-/** Extra deltaY past an edge required before Y-axis releases. */
+
+/**
+ * Minimum accumulated vertical scroll (px) past the first/last page before
+ * Y-axis scroll is released back to the page.  Keeps the boundary pages
+ * visible long enough for the user to actually read them.
+ */
 const ART_EXIT_DELTA = 120;
 
 export default function ArtGallery() {
   const [currentPage, setCurrentPage] = useState(0);
   const [turning, setTurning] = useState<"forward" | "back" | null>(null);
+
+  // true while the section is ≥50% visible
   const activeRef      = useRef(false);
-  const readyRef       = useRef(false);  // entry delay has elapsed
+  // true once ART_ENTER_DELAY_MS has elapsed after entering the viewport
+  const readyRef       = useRef(false);
   const sectionRef     = useRef<HTMLDivElement>(null);
+  // true while a page-turn animation is in progress — blocks stacking turns
   const turningRef     = useRef(false);
+  // accumulated wheel deltaY between page flips
   const deltaAccRef    = useRef(0);
+  // accumulated wheel deltaY while at the first/last page (exit buffer)
   const exitDeltaRef   = useRef(0);
+  // handle for the entry-delay timer so it can be cancelled on unmount
   const enterTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /**
+   * Triggers a page-turn animation to `next`, then commits the state change
+   * once the animation duration (600ms) has elapsed.
+   * turningRef blocks any new flip until the transition finishes.
+   */
   const goToPage = useCallback(
     (next: number) => {
-      if (turningRef.current) return;
+      if (turningRef.current) return;          // animation already running
       if (next < 0 || next >= ART_PAGES.length) return;
-      turningRef.current = true;
-      deltaAccRef.current = 0;
+
+      turningRef.current  = true;
+      deltaAccRef.current = 0;                 // discard queued delta
       setTurning(next > currentPage ? "forward" : "back");
 
       setTimeout(() => {
-        setCurrentPage(next);
-        setTurning(null);
+        setCurrentPage(next);  // commit new page index
+        setTurning(null);      // remove animation class
         turningRef.current = false;
-      }, 600);
+      }, 600); // must match --turn-duration in globals.css
     },
     [currentPage]
   );
@@ -79,17 +102,21 @@ export default function ArtGallery() {
     const section = sectionRef.current;
     if (!section) return;
 
+    // ── Visibility tracking ─────────────────────────────────────────────────
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           activeRef.current    = true;
           deltaAccRef.current  = 0;
           exitDeltaRef.current = 0;
+
+          // Start entry-delay timer — wheel hijacking won't begin until it fires
           if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
           enterTimerRef.current = setTimeout(() => {
             readyRef.current = true;
           }, ART_ENTER_DELAY_MS);
         } else {
+          // Section left the viewport — reset all scroll state
           activeRef.current    = false;
           readyRef.current     = false;
           deltaAccRef.current  = 0;
@@ -97,38 +124,47 @@ export default function ArtGallery() {
           if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0.5 } // fire when ≥50% of the section is visible
     );
     observer.observe(section);
 
+    // ── Wheel handler ───────────────────────────────────────────────────────
     const onWheel = (e: WheelEvent) => {
+      // Guard — section not visible, or still in entry-delay window
       if (!activeRef.current || !readyRef.current) return;
 
-      const atStart = currentPage === 0            && e.deltaY < 0;
-      const atEnd   = currentPage === ART_PAGES.length - 1 && e.deltaY > 0;
+      const atStart = currentPage === 0                       && e.deltaY < 0;
+      const atEnd   = currentPage === ART_PAGES.length - 1   && e.deltaY > 0;
 
+      // ── Boundary handling (first / last page) ───────────────────────────
       if (atStart || atEnd) {
+        // Hold Y scroll while the user is resting on the boundary page.
+        // Only release once they've accumulated ART_EXIT_DELTA px of intent.
         exitDeltaRef.current += e.deltaY;
         if (Math.abs(exitDeltaRef.current) < ART_EXIT_DELTA) {
-          e.preventDefault(); // hold Y scroll back
+          e.preventDefault(); // still holding Y
           return;
         }
+        // Threshold crossed → release Y scroll back to the page
         exitDeltaRef.current = 0;
-        return; // release Y scroll
+        return; // no preventDefault — page scrolls normally
       }
 
+      // ── Mid-gallery: own the Y axis entirely ────────────────────────────
       e.preventDefault();
+      exitDeltaRef.current = 0; // not at a boundary, reset exit counter
 
       // Don't stack page-turns while one is already animating
       if (turningRef.current) return;
 
-      // Require enough intentional scroll before flipping a page
+      // Accumulate delta until the intentional-flip threshold is met
       deltaAccRef.current += e.deltaY;
       if (Math.abs(deltaAccRef.current) < PAGE_DELTA_THRESHOLD) return;
 
       goToPage(deltaAccRef.current > 0 ? currentPage + 1 : currentPage - 1);
     };
 
+    // passive: false required to allow e.preventDefault() inside the handler
     window.addEventListener("wheel", onWheel, { passive: false });
     return () => {
       observer.disconnect();
