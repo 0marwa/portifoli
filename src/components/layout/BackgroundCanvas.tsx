@@ -3,9 +3,6 @@
 import { useEffect, useRef } from 'react';
 
 // ─── Minimal type stubs for the dynamically-loaded p5 global ──────────────────
-// p5 is loaded at runtime via a <script> tag; we don't install @types/p5,
-// so we declare only the subset the sketch actually uses.
-
 interface P5Vector {
   x: number;
   y: number;
@@ -13,30 +10,27 @@ interface P5Vector {
   copy(): P5Vector;
   mult(scalar: number): void;
   add(v: P5Vector): void;
-} 
+}
 
 interface P5Canvas {
   style(prop: string, value: string): void;
 }
 
 interface P5 {
-  // canvas lifecycle
   setup: () => void;
   draw: () => void;
   windowResized: () => void;
 
-  // dimensions
   width: number;
   height: number;
   windowWidth: number;
   windowHeight: number;
   mouseX: number;
+  mouseY: number;
   frameCount: number;
 
-  // constants
   TWO_PI: number;
 
-  // drawing commands
   createCanvas(w: number, h: number): P5Canvas;
   resizeCanvas(w: number, h: number): void;
   noStroke(): void;
@@ -44,7 +38,6 @@ interface P5 {
   rect(x: number, y: number, w: number, h: number): void;
   ellipse(x: number, y: number, d: number): void;
 
-  // math / noise
   noise(x: number, y: number, z: number): number;
   sin(angle: number): number;
   cos(angle: number): number;
@@ -52,12 +45,18 @@ interface P5 {
   random(min: number, max?: number): number;
   map(value: number, start1: number, stop1: number, start2: number, stop2: number): number;
 
-  // vector factory
   createVector(x: number, y: number, z?: number): P5Vector;
 }
 
 interface P5Constructor {
   new (sketch: (p: P5) => void, container: HTMLElement): { remove(): void };
+}
+
+interface RepelZone {
+  x: number;
+  y: number;
+  r: number;
+  force: number;
 }
 
 declare global {
@@ -82,11 +81,30 @@ export default function BackgroundCanvas() {
       const P5 = window.p5;
 
       const sketch = (p: P5) => {
-        // ── variables ──────────────────────────────────────────────────
-        const num = 2222;
-        const noiseScale = 100;
+        const num           = 2222;
+        const noiseScale    = 100;
         const noiseStrength = 1;
         const particles: Particle[] = new Array(num);
+
+        // ── repulsion config ───────────────────────────────────────────
+        const MOUSE_RADIUS = 120;   // px — repulsion radius around cursor
+        const MOUSE_FORCE  = 6;     // push strength for mouse
+        const DOM_RADIUS   = 80;    // extra padding beyond element bounds
+        const DOM_FORCE    = 4;     // push strength for DOM elements
+
+        let repelZones: RepelZone[] = [];
+        let zoneTimer = 0;
+
+        function refreshRepelZones() {
+          repelZones = [];
+          document.querySelectorAll('[data-repel]').forEach((el) => {
+            const rect = el.getBoundingClientRect();
+            const cx   = rect.left + rect.width  / 2;
+            const cy   = rect.top  + rect.height / 2;
+            const r    = Math.sqrt(rect.width ** 2 + rect.height ** 2) / 2 + DOM_RADIUS;
+            repelZones.push({ x: cx, y: cy, r, force: DOM_FORCE });
+          });
+        }
 
         // ── Particle class ─────────────────────────────────────────────
         class Particle {
@@ -107,6 +125,7 @@ export default function BackgroundCanvas() {
           }
 
           move() {
+            // original OG noise flow — unchanged
             const angle = p.noise(
               this.loc.x / noiseScale,
               this.loc.y / noiseScale,
@@ -117,9 +136,30 @@ export default function BackgroundCanvas() {
             this.dir.y = p.tan(angle);
 
             const vel = this.dir.copy();
-            const d = 22;
-            vel.mult(this.speed * d);
+            vel.mult(this.speed * 22);
             this.loc.add(vel);
+
+            // ── mouse repulsion ────────────────────────────────────────
+            const mdx = this.loc.x - p.mouseX;
+            const mdy = this.loc.y - p.mouseY;
+            const md  = Math.sqrt(mdx * mdx + mdy * mdy);
+            if (md < MOUSE_RADIUS && md > 0) {
+              const strength = (1 - md / MOUSE_RADIUS) * MOUSE_FORCE;
+              this.loc.x += (mdx / md) * strength * this.speed * 2;
+              this.loc.y += (mdy / md) * strength * this.speed * 2;
+            }
+
+            // ── DOM element repulsion ──────────────────────────────────
+            for (const zone of repelZones) {
+              const zdx = this.loc.x - zone.x;
+              const zdy = this.loc.y - zone.y;
+              const zd  = Math.sqrt(zdx * zdx + zdy * zdy);
+              if (zd < zone.r && zd > 0) {
+                const strength = (1 - zd / zone.r) * zone.force;
+                this.loc.x += (zdx / zd) * strength * this.speed * 2;
+                this.loc.y += (zdy / zd) * strength * this.speed * 2;
+              }
+            }
           }
 
           checkEdges() {
@@ -155,17 +195,25 @@ export default function BackgroundCanvas() {
             const speed = p.random(5, p.map(p.mouseX, 0, p.width, 5, 20));
             particles[i] = new Particle(loc, dir, speed);
           }
+
+          refreshRepelZones();
         };
 
-        // ── windowResized ──────────────────────────────────────────────
         p.windowResized = () => {
           p.resizeCanvas(p.windowWidth, p.windowHeight);
+          refreshRepelZones();
         };
 
-        // ── draw ───────────────────────────────────────────────────────
         p.draw = () => {
           p.fill(0, 10);
           p.rect(0, 0, p.width, p.height);
+
+          zoneTimer++;
+          if (zoneTimer >= 30) {
+            refreshRepelZones();
+            zoneTimer = 0;
+          }
+
           for (let i = 0; i < particles.length; i++) {
             particles[i].run();
           }
