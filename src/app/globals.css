@@ -33,7 +33,7 @@
 
 /* ─── Base ────────────────────────────────────────────────────────────────── */
 body {
-  /* Background is controlled dynamically by PageShell; this is just a fallback */
-  background: #f5f0e8;
-  color: #1a1a1a;
+  /* Background is controlled dynamically by PageShell (canvas + image layers) */
+  background: #0d0d0d;
+  color: #f0ebe0; /* warm cream-white — readable on the dark canvas background */
 }

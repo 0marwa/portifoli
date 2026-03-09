@@ -1,15 +1,50 @@
 "use client";
 
 import { useSectionBackground } from "@/hooks/useSectionBackground";
-import { SECTION_BACKGROUNDS } from "@/lib/sectionThemes";
+import { SECTION_BG_IMAGE } from "@/lib/sectionThemes";
+import BackgroundCanvas from "@/components/layout/BackgroundCanvas";
 import Navbar from "@/components/layout/Navbar";
 import ScrollToTop from "@/components/layout/ScrollToTop";
+import type { SectionId } from "@/types";
 
 /**
- * Client shell that wraps all sections.
- * Reads the active section from IntersectionObserver and applies
- * the matching background colour to the page root.
+ * Sections that swap in a photographic image overlay on top of the canvas.
+ * "about" and "contact" show only the interactive canvas — no image overlay.
+ * "projects", "art", and "photos" fade a background image in when active.
  */
+const IMAGE_SECTIONS: SectionId[] = ["projects", "art", "photos"];
+
+/**
+ * One fixed full-screen image layer per image-bearing section.
+ * zIndex: -9 sits just above the canvas (zIndex: -10).
+ * Active section fades to opacity:1; others stay opacity:0.
+ */
+function ImageOverlays({ active }: { active: SectionId | null }) {
+  return (
+    <div aria-hidden="true">
+      {IMAGE_SECTIONS.map((id) => (
+        <div
+          key={id}
+          style={{
+            position          : "fixed",
+            inset             : 0,
+            zIndex            : -9,
+            backgroundImage   : `url(${SECTION_BG_IMAGE[id]})`,
+            backgroundSize    : "cover",
+            backgroundPosition: "center center",
+            backgroundAttachment: "fixed",
+            backgroundRepeat  : "no-repeat",
+            // Crossfade: 900ms feels natural for full-viewport transitions.
+            opacity   : active === id ? 1 : 0,
+            transition: "opacity 900ms ease-in-out",
+            willChange: "opacity",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function PageShell({
   children,
 }: {
@@ -17,26 +52,17 @@ export default function PageShell({
 }) {
   const activeSection = useSectionBackground();
 
-  const theme =
-    activeSection && SECTION_BACKGROUNDS[activeSection]
-      ? SECTION_BACKGROUNDS[activeSection]
-      : { bg: "bg-[#f5f0e8]" }; // fallback to "about" colours
-
   return (
-    <div
-      className={`relative min-h-screen transition-colors duration-700 ${theme.bg}`}
-      style={
-        theme.texture
-          ? {
-              backgroundImage: `url(${theme.texture})`,
-              backgroundRepeat: "repeat",
-              backgroundSize: "auto",
-            }
-          : undefined
-      }
-    >
+    <div className="relative min-h-screen">
+      {/* Layer -10: interactive sigil-star canvas — always visible */}
+      <BackgroundCanvas />
+
+      {/* Layer -9: section-specific photo overlays (projects / art / photos only) */}
+      <ImageOverlays active={activeSection} />
+
       <Navbar />
       <ScrollToTop />
+
       {children}
     </div>
   );
