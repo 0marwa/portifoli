@@ -1,17 +1,39 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ─── Custom animations ───────────────────────────────────────────────────── */
+
+@keyframes page-turn-forward {
+  0%   { transform: rotateY(0deg);   }
+  50%  { transform: rotateY(-90deg); opacity: 0.4; }
+  100% { transform: rotateY(0deg);   }
+}
+
+@keyframes page-turn-back {
+  0%   { transform: rotateY(0deg);  }
+  50%  { transform: rotateY(90deg); opacity: 0.4; }
+  100% { transform: rotateY(0deg);  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
+
+  /* TODO: add your grungy handwritten font variable here once imported, e.g.:
+     --font-handwritten: var(--font-your-font-name);
+  */
+
+  --animate-page-turn-forward: page-turn-forward 0.6s ease-in-out;
+  --animate-page-turn-back:    page-turn-back    0.6s ease-in-out;
+  --animate-fade-in:           fade-in           0.5s ease-out forwards;
 }
 
+/* ─── Base ────────────────────────────────────────────────────────────────── */
 body {
-  background: var(--background);
-  color: var(--foreground);
+  /* Background is controlled dynamically by PageShell; this is just a fallback */
+  background: #f5f0e8;
+  color: #1a1a1a;
 }
