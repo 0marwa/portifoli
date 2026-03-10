@@ -21,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className={`${geist.variable} font-sans antialiased`}>
+      <body className={`${geist.variable} font-sans antialiased text-[#f0ebe0] bg-[#0d0d0d]`}>
         <Script
           src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"
           strategy="beforeInteractive"
