@@ -32,8 +32,10 @@
 }
 
 /* ─── Base ────────────────────────────────────────────────────────────────── */
-body {
-  /* Background is controlled dynamically by PageShell (canvas + image layers) */
-  background: #0d0d0d;
-  color: #f0ebe0; /* warm cream-white — readable on the dark canvas background */
+@layer base {
+  body {
+    /* Background is controlled dynamically by PageShell (canvas + image layers) */
+    background: #0d0d0d;
+    color: #f0ebe0; /* warm cream-white */
+  }
 }
