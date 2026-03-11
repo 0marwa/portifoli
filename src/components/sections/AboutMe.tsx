@@ -1,35 +1,31 @@
+"use client";
+
 import SectionWrapper from "@/components/ui/SectionWrapper";
 import Image from "next/image";
 
-/**
- * ─── About Me ─────────────────────────────────────────────────────────────────
- *
- * Layout: hand-drawn avatar in the centre, radiating arrows pointing to
- * info blurbs (name, role, location, skills, fun-fact, etc.)
- *
- * TODO:
- *   1. Replace /images/avatar.png with your actual hand-drawn avatar.
- *   2. Replace the placeholder text in each <InfoBlurb> with your real info.
- *   3. Swap the inline SVG arrows for your hand-drawn arrow assets.
- *   4. Apply your grungy font classes once the font is added to the project.
- */
+// ─── Blurb config ──────────────────────────────────────────────────────────────
+const BLURBS = [
+  { id: "name",     label: "ᯓ★",              value: "marwa",                   position: "top-[28%] left-[20%]",    rotation: -4 },
+  { id: "location", label: "based in",         value: "lausanne, CH",            position: "bottom-[30%] left-[18%]", rotation: -2 },
+  { id: "role",     label: "comp sci student", value: "& all pretty things enjoyer", position: "bottom-[28%] right-[18%]", rotation: 2  },
+];
 
+// ─── InfoBlurb ─────────────────────────────────────────────────────────────────
 interface InfoBlurbProps {
+  id: string;
   label: string;
   value: string;
-  /** Tailwind positioning classes, e.g. "top-8 left-0" */
   position: string;
-  /** degrees to rotate the blurb for a hand-drawn tilt effect */
   rotation?: number;
 }
 
-function InfoBlurb({ label, value, position, rotation = 0 }: InfoBlurbProps) {
+function InfoBlurb({ id, label, value, position, rotation = 0 }: InfoBlurbProps) {
   return (
     <div
+      data-blurb-id={id}
       className={`absolute ${position} max-w-[140px] text-center`}
       style={{ transform: `rotate(${rotation}deg)` }}
     >
-      {/* Radial gradient circle behind the text */}
       <div
         aria-hidden="true"
         style={{
@@ -49,6 +45,7 @@ function InfoBlurb({ label, value, position, rotation = 0 }: InfoBlurbProps) {
   );
 }
 
+// ─── AboutMe ───────────────────────────────────────────────────────────────────
 export default function AboutMe() {
   return (
     <SectionWrapper id="about">
@@ -56,12 +53,11 @@ export default function AboutMe() {
 
         {/* ── Central avatar ── */}
         <div className="relative z-10 h-64 w-64 shrink-0">
-          {/* Circle behind the avatar: opaque black at center → transparent at edges */}
           <div
             aria-hidden="true"
             style={{
               position: "absolute",
-              inset: "-30%",          /* larger than the avatar so the fade has room */
+              inset: "-30%",
               borderRadius: "50%",
               background: "radial-gradient(circle, #000000 20%, transparent 70%)",
               zIndex: 0,
@@ -77,26 +73,13 @@ export default function AboutMe() {
         </div>
 
         {/* ── Info blurbs ── */}
-        <InfoBlurb
-          label="ᯓ★"
-          value="marwa"
-          position="top-[30%] left-[18%]"
-          rotation={-4}
-        />
-        <InfoBlurb
-          label="based in"
-          value="lausanne, CH"
-          position="bottom-[32%] left-[16%]"
-          rotation={-2}
-        />
-        <InfoBlurb
-          label="comp sci student"
-          value="& pretty things enjoyer"
-          position="bottom-[30%] right-[16%]"
-          rotation={2}
-        />
+        {BLURBS.map((b) => (
+          <InfoBlurb key={b.id} {...b} />
+        ))}
 
       </div>
     </SectionWrapper>
   );
 }
+
+
