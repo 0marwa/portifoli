@@ -81,7 +81,7 @@ export default function BackgroundCanvas() {
       const P5 = window.p5;
 
       const sketch = (p: P5) => {
-        const num           = 2222;
+        const num           = 900; // nb of particles
         const noiseScale    = 100;
         const noiseStrength = 1;
         const particles: Particle[] = new Array(num);
