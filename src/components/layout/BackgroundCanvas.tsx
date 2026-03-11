@@ -173,7 +173,7 @@ export default function BackgroundCanvas() {
           }
 
           update() {
-            p.fill(255, 200, 255);
+            p.fill(240, 240, 255);
             p.ellipse(this.loc.x, this.loc.y, this.loc.z);
           }
         }
