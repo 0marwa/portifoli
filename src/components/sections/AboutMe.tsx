@@ -69,20 +69,20 @@ export default function AboutMe() {
         */}
         {/* TODO: replace each value="..." with your real info */}
         <InfoBlurb
-          label="Name"
-          value="Marwa"
+          label="*"
+          value="marwa"
           position="top-1/4 left-[8%]"
           rotation={-4}
         />
         <InfoBlurb
-          label="Role"
-          value="Developer & Creative"
+          label="comp sci student"
+          value="& pretty things enjoyer"
           position="top-[15%] right-[10%]"
           rotation={3}
         />
         <InfoBlurb
-          label="Based in"
-          value="——"
+          label="based in"
+          value="lausanne, CH"
           position="bottom-1/3 left-[6%]"
           rotation={-2}
         />
@@ -92,12 +92,12 @@ export default function AboutMe() {
           position="bottom-1/4 right-[8%]"
           rotation={2}
         />
-        <InfoBlurb
+{/*         <InfoBlurb
           label="fun fact"
           value="——"
           position="bottom-[12%] left-1/2 -translate-x-1/2"
           rotation={-1}
-        />
+        /> */}
 
       </div>
     </SectionWrapper>
