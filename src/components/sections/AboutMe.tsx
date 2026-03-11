@@ -45,15 +45,14 @@ export default function AboutMe() {
 
         {/* ── Central avatar ── */}
         <div className="relative z-10 h-64 w-64 shrink-0">
-          {/* Radial gradient: black at center fading to transparent at edges.
-              Sits behind the avatar drawing so the illustration blends into the canvas. */}
+          {/* Circle behind the avatar: opaque black at center → transparent at edges */}
           <div
             aria-hidden="true"
             style={{
               position: "absolute",
-              inset: 0,
+              inset: "-30%",          /* larger than the avatar so the fade has room */
               borderRadius: "50%",
-              background: "radial-gradient(circle, #000 0%, transparent 72%)",
+              background: "radial-gradient(circle, #000000 20%, transparent 70%)",
               zIndex: 0,
             }}
           />
