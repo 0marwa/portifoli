@@ -29,11 +29,22 @@ function InfoBlurb({ label, value, position, rotation = 0 }: InfoBlurbProps) {
       className={`absolute ${position} max-w-[140px] text-center`}
       style={{ transform: `rotate(${rotation}deg)` }}
     >
-      {/* TODO: draw an arrow SVG/asset from the avatar to each blurb */}
-      <p className="text-xs font-bold uppercase tracking-widest opacity-60">
+      {/* Radial gradient circle behind the text */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: "-60%",
+          borderRadius: "50%",
+          background: "radial-gradient(circle, #000000 15%, transparent 70%)",
+          zIndex: 0,
+          pointerEvents: "none",
+        }}
+      />
+      <p className="relative z-10 text-xs font-bold uppercase tracking-widest opacity-60">
         {label}
       </p>
-      <p className="mt-1 text-base leading-snug">{value}</p>
+      <p className="relative z-10 mt-1 text-base leading-snug">{value}</p>
     </div>
   );
 }
