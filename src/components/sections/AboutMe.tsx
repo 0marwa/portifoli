@@ -41,63 +41,50 @@ function InfoBlurb({ label, value, position, rotation = 0 }: InfoBlurbProps) {
 export default function AboutMe() {
   return (
     <SectionWrapper id="about">
-      <div className="relative flex h-full min-h-screen w-full items-center justify-center px-8 py-24">
+      <div className="relative flex min-h-screen w-full items-center justify-center px-8 py-24">
 
         {/* ── Central avatar ── */}
         <div className="relative z-10 h-64 w-64 shrink-0">
-          {/*
-            TODO: replace with your hand-drawn avatar image.
-            File should go in /public/images/avatar.png
-          */}
-          <div className="flex h-full w-full items-center justify-center rounded-full border-2 border-dashed border-current opacity-30">
-            <span className="text-sm opacity-60">avatar.png</span>
-          </div>
-          {/* Uncomment once you have the asset:
+          {/* Radial gradient: black at center fading to transparent at edges.
+              Sits behind the avatar drawing so the illustration blends into the canvas. */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              background: "radial-gradient(circle, #000 0%, transparent 72%)",
+              zIndex: 0,
+            }}
+          />
           <Image
             src="/images/avatar.png"
             alt="Hand-drawn avatar of Marwa"
             fill
             className="object-contain"
+            style={{ filter: "invert(1)", zIndex: 1 }}
           />
-          */}
         </div>
 
-        {/* ── Info blurbs radiating around the avatar ──
-              Positions are set for a ~1200px-wide viewport.
-              Adjust the Tailwind position classes to match your design
-              once the avatar asset is in place.
-        */}
-        {/* TODO: replace each value="..." with your real info */}
+        {/* ── Info blurbs ── */}
         <InfoBlurb
-          label="*"
+          label="ᯓ★"
           value="marwa"
-          position="top-1/4 left-[8%]"
+          position="top-[30%] left-[18%]"
           rotation={-4}
-        />
-        <InfoBlurb
-          label="comp sci student"
-          value="& pretty things enjoyer"
-          position="top-[15%] right-[10%]"
-          rotation={3}
         />
         <InfoBlurb
           label="based in"
           value="lausanne, CH"
-          position="bottom-1/3 left-[6%]"
+          position="bottom-[32%] left-[16%]"
           rotation={-2}
         />
         <InfoBlurb
-          label="Skills"
-          value="React · Next.js · Illustration"
-          position="bottom-1/4 right-[8%]"
+          label="comp sci student"
+          value="& pretty things enjoyer"
+          position="bottom-[30%] right-[16%]"
           rotation={2}
         />
-{/*         <InfoBlurb
-          label="fun fact"
-          value="——"
-          position="bottom-[12%] left-1/2 -translate-x-1/2"
-          rotation={-1}
-        /> */}
 
       </div>
     </SectionWrapper>
