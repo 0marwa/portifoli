@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import localFont from "next/font/local";
 import Script from "next/script";
 import "./globals.css";
 import PageShell from "@/components/layout/PageShell";
@@ -7,6 +8,11 @@ import PageShell from "@/components/layout/PageShell";
 const geist = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+});
+
+const acidic = localFont({
+  src: "../../public/fonts/Acidic.ttf",
+  variable: "--font-acidic",
 });
 
 export const metadata: Metadata = {
@@ -22,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body
-        className={`${geist.variable} font-sans antialiased text-[#f0ebe0] bg-[#0d0d0d]`}
+        className={`${geist.variable} ${acidic.variable} font-sans antialiased text-[#f0ebe0] bg-[#0d0d0d]`}
         style={{ color: "#f0ebe0", backgroundColor: "#0d0d0d" }}
       >
         <Script
