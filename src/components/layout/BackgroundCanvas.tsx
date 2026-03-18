@@ -161,6 +161,13 @@ export default function BackgroundCanvas({ activeSection }: BackgroundCanvasProp
         const particles: Particle[] = new Array(num);
         let repelZones: RepelZone[] = [];
         let zoneTimer = 0;
+        let bgAlpha = 10;
+
+        // ── Glitch bands for projects (retro TV effect) ────────────────
+        let glitchBands: Array<{ y: number; h: number; shift: number; life: number }> = [];
+        let glitchTimer = 0;
+        const GLITCH_INTERVAL = 40;
+        const GLITCH_BAND_LIFE = 10;
 
         // Point clouds per shape — populated after images load
         const shapeClouds: { x: number; y: number }[][] = BITMAP_SRCS.map(() => []);
@@ -279,12 +286,9 @@ export default function BackgroundCanvas({ activeSection }: BackgroundCanvasProp
             const vel = this.dir.copy();
             vel.mult(this.speed * 22);
 
-            // ── Mode 1: projects — diagonal streaks + glitch jolts ─────
-            const lineAngle = p.PI * 0.82;
-            const gT        = Math.sin(p.frameCount * 0.08 + this.glitchOffset);
-            const gAmp      = gT > 0.7 ? p.random(-60, 60) : 0;
-            const projDx    = p.cos(lineAngle) * this.speed * 18 + gAmp;
-            const projDy    = p.sin(lineAngle) * this.speed * 18 + gAmp * 0.3;
+            // ── Mode 1: projects — retro TV static, particles nearly stationary ──
+            const projDx = this.dustDx * 0.25;
+            const projDy = this.dustDy * 0.15;
 
             // ── Mode 2: art — drift toward bitmap target ───────────────
             const artStrength = p.constrain(b - 1, 0, 1) * 0.045;
@@ -314,14 +318,17 @@ export default function BackgroundCanvas({ activeSection }: BackgroundCanvasProp
             this.loc.x += dx;
             this.loc.y += dy;
 
-            // ── mouse repulsion — from your original file ──────────────
-            const mdx = this.loc.x - p.mouseX;
-            const mdy = this.loc.y - p.mouseY;
-            const md  = Math.sqrt(mdx * mdx + mdy * mdy);
-            if (md < MOUSE_RADIUS && md > 0) {
-              const strength = (1 - md / MOUSE_RADIUS) * MOUSE_FORCE;
-              this.loc.x += (mdx / md) * strength * this.speed * 2;
-              this.loc.y += (mdy / md) * strength * this.speed * 2;
+            // ── mouse repulsion — about section only ───────────────────
+            const aboutWeight = p.constrain(1 - this.blend, 0, 1);
+            if (aboutWeight > 0.01) {
+              const mdx = this.loc.x - p.mouseX;
+              const mdy = this.loc.y - p.mouseY;
+              const md  = Math.sqrt(mdx * mdx + mdy * mdy);
+              if (md < MOUSE_RADIUS && md > 0) {
+                const strength = (1 - md / MOUSE_RADIUS) * MOUSE_FORCE * aboutWeight;
+                this.loc.x += (mdx / md) * strength * this.speed * 2;
+                this.loc.y += (mdy / md) * strength * this.speed * 2;
+              }
             }
 
             // ── DOM repulsion — from your original file ────────────────
@@ -345,8 +352,15 @@ export default function BackgroundCanvas({ activeSection }: BackgroundCanvasProp
               this.loc.x < 0 || this.loc.x > p.width ||
               this.loc.y < 0 || this.loc.y > p.height
             ) {
-              this.loc.x = p.random(p.width * 10);
-              this.loc.y = p.random(p.height);
+              // Projects mode: respawn on-screen for TV static coverage
+              const inProjects = this.blend > 0.3 && this.blend < 1.7;
+              if (inProjects) {
+                this.loc.x = p.random(p.width);
+                this.loc.y = p.random(p.height);
+              } else {
+                this.loc.x = p.random(p.width * 10);
+                this.loc.y = p.random(p.height);
+              }
             }
           }
 
@@ -361,24 +375,35 @@ export default function BackgroundCanvas({ activeSection }: BackgroundCanvasProp
               p.ellipse(this.loc.x, this.loc.y, this.loc.z);
             }
 
-            // Mode 1: projects — same color, streak lines + glitch flicker
+            // Mode 1: projects — retro TV static, glitch in place
             const projW = b < 1
               ? p.constrain(b, 0, 1)
               : p.constrain(2 - b, 0, 1);
             if (projW > 0.01) {
-              const lineAngle = p.PI * 0.82;
-              const len       = this.speed * 8 * projW;
-              const flicker   = Math.sin(p.frameCount * 0.08 + this.glitchOffset) > 0.7
-                ? p.random(0.3, 1.0) : 1;
-              p.stroke(240, 240, 255, 255 * projW * flicker);
-              p.strokeWeight(p.random(0.4, 1.1));
-              p.line(
-                this.loc.x,
-                this.loc.y,
-                this.loc.x + p.cos(lineAngle) * len,
-                this.loc.y + p.sin(lineAngle) * len,
-              );
+              // Find glitch band displacement for this particle's Y
+              let xShift = 0;
+              let bandLife = 0;
+              for (const band of glitchBands) {
+                if (this.loc.y >= band.y && this.loc.y < band.y + band.h) {
+                  xShift = band.shift * (band.life / GLITCH_BAND_LIFE);
+                  bandLife = band.life;
+                  break;
+                }
+              }
+              const drawX = this.loc.x + xShift;
+              const drawY = this.loc.y;
+              // Random flicker like TV static
+              const flicker = Math.random() > 0.12 ? p.random(0.3, 1.0) : 0;
               p.noStroke();
+              p.fill(240, 240, 255, 255 * projW * flicker);
+              p.ellipse(drawX, drawY, p.random(0.5, 2.5));
+              // Short horizontal dash in active glitch bands
+              if (bandLife > 0 && flicker > 0) {
+                p.stroke(240, 240, 255, 200 * projW * flicker);
+                p.strokeWeight(0.5);
+                p.line(drawX, drawY, drawX + p.random(4, 18), drawY);
+                p.noStroke();
+              }
             }
 
             // Mode 2: art — tiny dot, forms bitmap shape
@@ -433,13 +458,36 @@ export default function BackgroundCanvas({ activeSection }: BackgroundCanvasProp
 
         // ── draw — kept exactly as your file ───────────────────────────
         p.draw = () => {
-          p.fill(0, 10);
+          // Background alpha: more opaque in art mode to kill trails
+          const targetBgAlpha = sectionRef.current === 2 ? 80 : 10;
+          bgAlpha += (targetBgAlpha - bgAlpha) * 0.03;
+          p.fill(0, bgAlpha);
           p.rect(0, 0, p.width, p.height);
 
-          // Projects mode: occasional glitch scanline
-          if (sectionRef.current === 1 && Math.sin(p.frameCount * 0.05) > 0.92) {
-            p.fill(240, 240, 255, p.random(8, 22));
-            p.rect(0, p.random(p.height), p.width, p.random(2, 18));
+          // Projects mode: retro TV glitch bands + scanlines
+          if (sectionRef.current === 1) {
+            glitchTimer++;
+            if (glitchTimer >= GLITCH_INTERVAL || Math.random() > 0.985) {
+              glitchTimer = 0;
+              const count = Math.floor(Math.random() * 3) + 1;
+              for (let k = 0; k < count; k++) {
+                glitchBands.push({
+                  y: Math.random() * p.height,
+                  h: Math.random() * 50 + 8,
+                  shift: (Math.random() - 0.5) * 140,
+                  life: GLITCH_BAND_LIFE,
+                });
+              }
+            }
+            glitchBands = glitchBands.filter((band) => { band.life--; return band.life > 0; });
+            // Scanline overlay
+            if (Math.sin(p.frameCount * 0.05) > 0.92) {
+              p.fill(240, 240, 255, p.random(8, 22));
+              p.rect(0, p.random(p.height), p.width, p.random(2, 18));
+            }
+          } else {
+            glitchBands = [];
+            glitchTimer = 0;
           }
 
           zoneTimer++;
