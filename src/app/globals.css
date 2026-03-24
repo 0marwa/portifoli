@@ -21,10 +21,7 @@
 
 @theme inline {
   --font-sans: var(--font-geist-sans);
-
-  /* TODO: add your grungy handwritten font variable here once imported, e.g.:
-     --font-handwritten: var(--font-your-font-name);
-  */
+  --font-acidic: var(--font-acidic);
 
   --animate-page-turn-forward: page-turn-forward 0.6s ease-in-out;
   --animate-page-turn-back:    page-turn-back    0.6s ease-in-out;
@@ -37,4 +34,9 @@
     background: #0d0d0d;
     color: #f0ebe0; /* warm cream-white */
   }
+}
+
+/* ─── Section background image crossfade ─────────────────────────────────── */
+.section-bg-image {
+  transition: opacity 0.6s ease-in-out;
 }
