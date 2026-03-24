@@ -41,8 +41,7 @@ function InfoBlurb({ id, label, value, position, rotation = 0 }: InfoBlurbProps)
         {label}
       </p>
       <p
-        className="relative z-10 mt-1 text-base leading-snug"
-        style={{ fontFamily: "var(--font-acidic), sans-serif" }}
+        className="relative z-10 mt-1 text-base leading-snug font-acidic"
       >
         {value}
       </p>
