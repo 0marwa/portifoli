@@ -103,11 +103,10 @@ interface ProjectNodeProps {
   position: [number, number];
   index: number;
   isSelected: boolean;
-  isVisited: boolean;
   onSelect: (project: Project) => void;
 }
 
-function ProjectNode({ project, position, index, isSelected, isVisited, onSelect }: ProjectNodeProps) {
+function ProjectNode({ project, position, index, isSelected, onSelect }: ProjectNodeProps) {
   const [top, left] = position;
   const preview = GLITCH_PREVIEWS[index] ?? ["▓▓ ???", "// unknown"];
 
@@ -132,36 +131,6 @@ function ProjectNode({ project, position, index, isSelected, isVisited, onSelect
           : "border-white/60 bg-[#0a0a0a]/90 text-white/90 hover:border-white hover:text-white",
       ].join(" ")}
     >
-      {/* Degraded image — clears on first visit */}
-      <div
-        style={{
-          height: "52px",
-          overflow: "hidden",
-          margin: "-0.75rem -1rem 0.75rem -1rem",
-          borderBottom: "1px solid rgba(255,255,255,0.07)",
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={project.image}
-          alt=""
-          aria-hidden="true"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            filter: isVisited
-              ? "grayscale(0.1) brightness(0.85) contrast(1)"
-              : "grayscale(1) contrast(4) brightness(0.2)",
-            imageRendering: isVisited ? "auto" : "pixelated",
-            transition: "filter 1.4s ease, image-rendering 1.4s ease",
-          }}
-        />
-      </div>
-
       {/* Node ID */}
       <div className="mb-2 flex items-center justify-between">
         <span className="text-[10px] opacity-40 tracking-widest uppercase">
@@ -281,6 +250,15 @@ interface DetailPanelProps {
 }
 
 function DetailPanel({ project, onClose }: DetailPanelProps) {
+  // Bitmap reveal: start degraded, clear after short delay each time a new project opens
+  const [revealed, setRevealed] = useState(false);
+  useEffect(() => {
+    if (!project) return;
+    setRevealed(false);
+    const t = setTimeout(() => setRevealed(true), 2500);
+    return () => clearTimeout(t);
+  }, [project?.id]);
+
   // Close on Escape
   useEffect(() => {
     if (!project) return;
@@ -445,7 +423,18 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
                       (el.parentElement as HTMLElement).style.justifyContent = "center";
                       (el.parentElement as HTMLElement).setAttribute("data-empty", "1");
                     }}
-                    style={{ width: "100%", height: "100%", objectFit: "cover", filter: "brightness(0.9)" }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      position: "relative",
+                      zIndex: 1,
+                      imageRendering: revealed ? "auto" : "pixelated",
+                      filter: revealed
+                        ? "grayscale(0) brightness(0.9) contrast(1)"
+                        : "grayscale(1) contrast(1.8) brightness(0.45) blur(0.5px)",
+                      transition: "filter 1.6s ease",
+                    }}
                   />
                   <span
                     style={{
@@ -511,7 +500,6 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
 // ─── Projects (main export) ───────────────────────────────────────────────────
 export default function Projects() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
   const sectionRef = useRef<HTMLElement | null>(null);
 
   // ── Particle dimming via IntersectionObserver ────────────────────────────
@@ -536,7 +524,6 @@ export default function Projects() {
 
   const handleSelect = useCallback((project: Project) => {
     setSelectedProject((prev) => (prev?.id === project.id ? null : project));
-    setVisitedIds((prev) => new Set([...prev, project.id]));
   }, []);
 
   const handleClose = useCallback(() => {
@@ -627,7 +614,6 @@ export default function Projects() {
             position={CARD_POSITIONS[index] ?? [10 + index * 20, 10]}
             index={index}
             isSelected={selectedProject?.id === project.id}
-            isVisited={visitedIds.has(project.id)}
             onSelect={handleSelect}
           />
         ))}
