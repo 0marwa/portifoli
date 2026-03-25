@@ -30,6 +30,7 @@ export default function BackgroundCanvas() {
 
       let repelZones: RepelZone[] = [];
       let zoneTimer = 0;
+      let particlesDimmed = false;
 
       function refreshRepelZones() {
         repelZones = [];
@@ -40,6 +41,7 @@ export default function BackgroundCanvas() {
           const r    = Math.sqrt(rect.width ** 2 + rect.height ** 2) / 2 + DOM_RADIUS;
           repelZones.push({ x: cx, y: cy, r, force: DOM_FORCE });
         });
+        particlesDimmed = document.documentElement.dataset.dimParticles === '1';
       }
 
       // ── Particle class ─────────────────────────────────────────────
@@ -109,7 +111,11 @@ export default function BackgroundCanvas() {
         }
 
         update() {
-          p.fill(240, 240, 255);
+          if (particlesDimmed) {
+            p.fill(160, 160, 160, 60);
+          } else {
+            p.fill(240, 240, 255);
+          }
           p.ellipse(this.loc.x, this.loc.y, (this.loc as p5.Vector & { z: number }).z);
         }
       }
