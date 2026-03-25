@@ -98,6 +98,21 @@ export default function BackgroundCanvas() {
               this.loc.y += (zdy / zd) * strength * this.speed * 2;
             }
           }
+
+          // ── DOM element attraction (only when dimmed) ──────────────────
+          if (particlesDimmed) {
+            for (const zone of repelZones) {
+              const ATTRACT_RADIUS = zone.r * 3.5;
+              const adx = zone.x - this.loc.x;
+              const ady = zone.y - this.loc.y;
+              const ad  = Math.sqrt(adx * adx + ady * ady);
+              if (ad < ATTRACT_RADIUS && ad > zone.r) {
+                const strength = (1 - ad / ATTRACT_RADIUS) * 0.8;
+                this.loc.x += (adx / ad) * strength * this.speed;
+                this.loc.y += (ady / ad) * strength * this.speed;
+              }
+            }
+          }
         }
 
         checkEdges() {
@@ -112,7 +127,7 @@ export default function BackgroundCanvas() {
 
         update() {
           if (particlesDimmed) {
-            p.fill(160, 160, 160, 60);
+            p.fill(210, 210, 230, 55);
           } else {
             p.fill(240, 240, 255);
           }
@@ -147,14 +162,20 @@ export default function BackgroundCanvas() {
       };
 
       p.draw = () => {
-        p.fill(0, 10);
-        p.rect(0, 0, p.width, p.height);
-
+        // Refresh repel zones on timer
         zoneTimer++;
         if (zoneTimer >= 30) {
           refreshRepelZones();
           zoneTimer = 0;
         }
+
+        // Background fade — slower when dimmed so trails linger longer
+        if (particlesDimmed) {
+          p.fill(0, 8);
+        } else {
+          p.fill(0, 10);
+        }
+        p.rect(0, 0, p.width, p.height);
 
         for (let i = 0; i < particles.length; i++) {
           particles[i].run();

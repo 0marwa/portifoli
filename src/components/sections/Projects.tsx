@@ -5,43 +5,39 @@ import SectionWrapper from "@/components/ui/SectionWrapper";
 import type { Project } from "@/types";
 
 // ─── Project data ──────────────────────────────────────────────────────────────
-// TODO: Replace with real project data and screenshots.
 const PROJECTS: Project[] = [
   {
-    id: "project-1",
-    title: "Project One",
+    id: "cittitrip",
+    title: "CittiTrip",
     description:
-      "A deep dive into generative art systems using noise fields and emergent behaviour. Built with p5.js and a custom particle engine.",
-    tags: ["p5.js", "TypeScript", "Canvas API"],
-    image: "/images/projects/p1.png",
+      "AI-powered travel planner built solo, end-to-end. Next.js + React Native frontend, TypeScript business logic, external API integrations. Designed and shipped the full stack autonomously.",
+    tags: ["Next.js", "React Native", "TypeScript"],
+    image: "/images/projects/cittitrip.png",
+  },
+  {
+    id: "elysium",
+    title: "Elysium Quran Chatbot",
+    description:
+      "Production website for a Moroccan company, including a functional chatbot via API integration. Responsible for front-end architecture, API wiring, and live deployment in a real client context.",
+    tags: ["Next.js", "TypeScript", "APIs"],
+    image: "/images/projects/elysium.png",
+  },
+  {
+    id: "feedme",
+    title: "FeedMe",
+    description:
+      "Android app built in a 14-week SCRUM team project at EPFL (CS311). Covered ideation → Figma prototyping → Kotlin development → user testing → final demo. 2nd place at Battle of the Apps 2023.",
+    tags: ["Kotlin", "Figma", "SCRUM"],
+    image: "/images/projects/feedme.png",
     link: "https://github.com/",
   },
   {
-    id: "project-2",
-    title: "Project Two",
+    id: "scala-webapp",
+    title: "Web App",
     description:
-      "Full-stack web application for collaborative annotation of digitised manuscripts. REST API with Next.js frontend.",
-    tags: ["Next.js", "Node", "PostgreSQL"],
-    image: "/images/projects/p2.png",
-    link: "https://github.com/",
-  },
-  {
-    id: "project-3",
-    title: "Project Three",
-    description:
-      "CLI tool that parses academic paper PDFs and surfaces citation graphs as interactive force-directed visualisations.",
-    tags: ["Python", "D3.js", "Graph Theory"],
-    image: "/images/projects/p3.png",
-    link: "https://github.com/",
-  },
-  {
-    id: "project-4",
-    title: "Project Four",
-    description:
-      "Procedural music generator trained on folk melodies. Outputs MIDI files via a Markov chain composition model.",
-    tags: ["Python", "MIDI", "ML"],
-    image: "/images/projects/p4.png",
-    link: "https://github.com/",
+      "Academic web application built for EPFL's Software Construction course. Focused on software architecture, clean separation of concerns, and UI implementation in Scala.",
+    tags: ["Scala", "Web", "EPFL"],
+    image: "/images/projects/scala-webapp.png",
   },
 ];
 
@@ -95,10 +91,10 @@ function cardCentre(index: number): [number, number] {
 
 // ─── Glitchy preview text shown inside each collapsed card ────────────────────
 const GLITCH_PREVIEWS = [
-  ["▓▓ GEN_ART", "noise() → ∞", "// canvas"],
-  ["▓ WEB_APP",  "GET /api/v1",  "// fullstack"],
-  ["▓▓ CLI_TOOL","graph.parse()", "// python"],
-  ["▓ PROC_MUS", "chain.next()", "// midi"],
+  ["▓▓ AI_TRAVEL", "plan() → trip", "// next.js"],
+  ["▓ CHATBOT",    "POST /api/chat", "// deployed"],
+  ["▓▓ ANDROID",   "scrum.sprint()", "// kotlin"],
+  ["▓ WEB_APP",    "build(scala)",   "// EPFL"],
 ];
 
 // ─── ProjectNode ──────────────────────────────────────────────────────────────
@@ -107,10 +103,11 @@ interface ProjectNodeProps {
   position: [number, number];
   index: number;
   isSelected: boolean;
+  isVisited: boolean;
   onSelect: (project: Project) => void;
 }
 
-function ProjectNode({ project, position, index, isSelected, onSelect }: ProjectNodeProps) {
+function ProjectNode({ project, position, index, isSelected, isVisited, onSelect }: ProjectNodeProps) {
   const [top, left] = position;
   const preview = GLITCH_PREVIEWS[index] ?? ["▓▓ ???", "// unknown"];
 
@@ -132,9 +129,39 @@ function ProjectNode({ project, position, index, isSelected, onSelect }: Project
         "focus:outline-none focus-visible:ring-1 focus-visible:ring-current",
         isSelected
           ? "border-[#a0d8d8] bg-black/70 text-[#a0d8d8]"
-          : "border-[#f0ebe0]/30 bg-black/50 text-[#f0ebe0]/80 hover:border-[#f0ebe0]/70 hover:text-[#f0ebe0]",
+          : "border-white/60 bg-[#0a0a0a]/90 text-white/90 hover:border-white hover:text-white",
       ].join(" ")}
     >
+      {/* Degraded image — clears on first visit */}
+      <div
+        style={{
+          height: "52px",
+          overflow: "hidden",
+          margin: "-0.75rem -1rem 0.75rem -1rem",
+          borderBottom: "1px solid rgba(255,255,255,0.07)",
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={project.image}
+          alt=""
+          aria-hidden="true"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            filter: isVisited
+              ? "grayscale(0.1) brightness(0.85) contrast(1)"
+              : "grayscale(1) contrast(4) brightness(0.2)",
+            imageRendering: isVisited ? "auto" : "pixelated",
+            transition: "filter 1.4s ease, image-rendering 1.4s ease",
+          }}
+        />
+      </div>
+
       {/* Node ID */}
       <div className="mb-2 flex items-center justify-between">
         <span className="text-[10px] opacity-40 tracking-widest uppercase">
@@ -212,7 +239,7 @@ function ConnectorSVG() {
             <line
               x1={`${fromLeft}%`} y1={`${fromTop}%`}
               x2={`${toLeft}%`}   y2={`${toTop}%`}
-              stroke="#f0ebe0"
+              stroke="white"
               strokeWidth="0.5"
               strokeOpacity="0.25"
               style={{
@@ -224,7 +251,7 @@ function ConnectorSVG() {
             <line
               x1={`${fromLeft + 0.15}%`} y1={`${fromTop + 0.1}%`}
               x2={`${midLeft}%`}          y2={`${midTop}%`}
-              stroke="#80c0c0"
+              stroke="white"
               strokeWidth="0.3"
               strokeOpacity="0.12"
               style={{
@@ -237,7 +264,7 @@ function ConnectorSVG() {
               cx={`${midLeft}%`}
               cy={`${midTop}%`}
               r="1.5"
-              fill="#f0ebe0"
+              fill="white"
               fillOpacity="0.15"
             />
           </g>
@@ -247,7 +274,7 @@ function ConnectorSVG() {
   );
 }
 
-// ─── Detail panel ─────────────────────────────────────────────────────────────
+// ─── Detail modal — centered overlay ──────────────────────────────────────────
 interface DetailPanelProps {
   project: Project | null;
   onClose: () => void;
@@ -264,172 +291,219 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [project, onClose]);
 
+  const isOpen = project !== null;
+
   return (
+    // Backdrop — click outside to close
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={project?.title ?? "Project detail"}
+      role="presentation"
+      onClick={onClose}
       style={{
         position: "fixed",
-        top: 0,
-        right: 0,
-        height: "100dvh",
-        width: "min(420px, 100vw)",
+        inset: 0,
         zIndex: 50,
-        fontFamily: "monospace",
-        transform: project ? "translateX(0)" : "translateX(100%)",
-        transition: "transform 0.32s cubic-bezier(0.16, 1, 0.3, 1)",
-        background: "rgba(8, 12, 12, 0.97)",
-        borderLeft: "1px solid rgba(160, 216, 216, 0.25)",
-        display: "flex",
-        flexDirection: "column",
-        pointerEvents: project ? "auto" : "none",
+        background: "rgba(0, 0, 0, 0.75)",
+        backdropFilter: "blur(2px)",
+        pointerEvents: isOpen ? "auto" : "none",
+        opacity: isOpen ? 1 : 0,
+        transition: "opacity 0.25s ease",
       }}
     >
-      {project && (
-        <>
-          {/* Header */}
-          <div
-            style={{
-              padding: "1.5rem",
-              borderBottom: "1px solid rgba(240, 235, 224, 0.1)",
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: "1rem",
-            }}
-          >
-            <div>
-              <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.5rem" }}>
-                // PROJECT_DETAIL
-              </div>
-              <h2
-                style={{
-                  fontSize: "1.25rem",
-                  fontWeight: "bold",
-                  letterSpacing: "0.05em",
-                  fontFamily: "var(--font-acidic), monospace",
-                  color: "#a0d8d8",
-                  lineHeight: 1.2,
-                  animation: "glitch-text 6s step-end infinite",
-                }}
-              >
-                {project.title.toUpperCase()}
-              </h2>
-            </div>
-            <button
-              onClick={onClose}
-              aria-label="Close detail panel"
-              style={{
-                background: "none",
-                border: "1px solid rgba(240, 235, 224, 0.2)",
-                color: "#f0ebe0",
-                cursor: "pointer",
-                padding: "0.25rem 0.5rem",
-                fontSize: "11px",
-                letterSpacing: "0.1em",
-                flexShrink: 0,
-                marginTop: "1.5rem",
-              }}
-            >
-              [ESC]
-            </button>
-          </div>
-
-          {/* Body */}
-          <div style={{ flex: 1, overflow: "auto", padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            {/* Description */}
-            <div>
-              <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.5rem" }}>
-                README.md
-              </div>
-              <p style={{ fontSize: "0.875rem", lineHeight: 1.7, opacity: 0.85, color: "#f0ebe0" }}>
-                {project.description}
-              </p>
-            </div>
-
-            {/* Tags */}
-            <div>
-              <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.75rem" }}>
-                dependencies[]
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                {project.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    style={{
-                      border: "1px solid rgba(160, 216, 216, 0.4)",
-                      color: "#a0d8d8",
-                      padding: "0.2rem 0.6rem",
-                      fontSize: "11px",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Image placeholder */}
-            <div>
-              <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.75rem" }}>
-                preview.png
-              </div>
-              <div
-                style={{
-                  border: "1px solid rgba(240, 235, 224, 0.12)",
-                  height: "180px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "11px",
-                  opacity: 0.3,
-                  letterSpacing: "0.1em",
-                }}
-              >
-                {/* TODO: replace with <Image> once real screenshots exist */}
-                [IMG_NOT_FOUND]
-              </div>
-            </div>
-          </div>
-
-          {/* Footer CTA */}
-          {project.link && (
+      {/* Modal card — stop propagation so clicking inside doesn't close */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={project?.title ?? "Project detail"}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: isOpen
+            ? "translate(-50%, -50%) scale(1)"
+            : "translate(-50%, -50%) scale(0.95)",
+          transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease",
+          opacity: isOpen ? 1 : 0,
+          width: "90vw",
+          maxWidth: "560px",
+          maxHeight: "80vh",
+          overflowY: "auto",
+          background: "rgba(8, 12, 12, 0.98)",
+          border: "1px solid rgba(160, 216, 216, 0.3)",
+          fontFamily: "monospace",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {project && (
+          <>
+            {/* Header */}
             <div
               style={{
-                padding: "1.25rem 1.5rem",
-                borderTop: "1px solid rgba(240, 235, 224, 0.1)",
+                padding: "1.5rem",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: "1rem",
               }}
             >
-              <a
-                href={project.link}
-                target="_blank"
-                rel="noopener noreferrer"
+              <div>
+                <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.5rem" }}>
+                  // PROJECT_DETAIL
+                </div>
+                <h2
+                  style={{
+                    fontSize: "1.25rem",
+                    fontWeight: "bold",
+                    letterSpacing: "0.05em",
+                    fontFamily: "var(--font-acidic), monospace",
+                    color: "#a0d8d8",
+                    lineHeight: 1.2,
+                    animation: "glitch-text 6s step-end infinite",
+                  }}
+                >
+                  {project.title.toUpperCase()}
+                </h2>
+              </div>
+              <button
+                onClick={onClose}
+                aria-label="Close project detail"
                 style={{
-                  display: "block",
-                  textAlign: "center",
-                  border: "1px solid rgba(160, 216, 216, 0.5)",
-                  color: "#a0d8d8",
-                  padding: "0.75rem 1rem",
-                  fontSize: "12px",
-                  letterSpacing: "0.15em",
-                  textDecoration: "none",
-                  transition: "background 0.15s, color 0.15s",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLAnchorElement).style.background = "rgba(160, 216, 216, 0.1)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
+                  background: "none",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  color: "white",
+                  cursor: "pointer",
+                  padding: "0.25rem 0.5rem",
+                  fontSize: "11px",
+                  letterSpacing: "0.1em",
+                  flexShrink: 0,
+                  marginTop: "1.5rem",
                 }}
               >
-                OPEN_PROJECT →
-              </a>
+                [ESC]
+              </button>
             </div>
-          )}
-        </>
-      )}
+
+            {/* Body */}
+            <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+              {/* Description */}
+              <div>
+                <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.5rem" }}>
+                  README.md
+                </div>
+                <p style={{ fontSize: "0.875rem", lineHeight: 1.7, opacity: 0.85, color: "white" }}>
+                  {project.description}
+                </p>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.75rem" }}>
+                  dependencies[]
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  {project.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      style={{
+                        border: "1px solid rgba(160, 216, 216, 0.4)",
+                        color: "#a0d8d8",
+                        padding: "0.2rem 0.6rem",
+                        fontSize: "11px",
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview image — full quality in detail view */}
+              <div>
+                <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.75rem" }}>
+                  preview.png
+                </div>
+                <div
+                  style={{
+                    border: "1px solid rgba(255, 255, 255, 0.12)",
+                    height: "180px",
+                    overflow: "hidden",
+                    position: "relative",
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={project.image}
+                    alt={`${project.title} preview`}
+                    onError={(e) => {
+                      const el = e.currentTarget as HTMLImageElement;
+                      el.style.display = "none";
+                      (el.parentElement as HTMLElement).style.display = "flex";
+                      (el.parentElement as HTMLElement).style.alignItems = "center";
+                      (el.parentElement as HTMLElement).style.justifyContent = "center";
+                      (el.parentElement as HTMLElement).setAttribute("data-empty", "1");
+                    }}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", filter: "brightness(0.9)" }}
+                  />
+                  <span
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "11px",
+                      opacity: 0.3,
+                      letterSpacing: "0.1em",
+                      pointerEvents: "none",
+                    }}
+                    aria-hidden="true"
+                  >
+                    [IMG_NOT_FOUND]
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer CTA */}
+            {project.link && (
+              <div
+                style={{
+                  padding: "1.25rem 1.5rem",
+                  borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                <a
+                  href={project.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "block",
+                    textAlign: "center",
+                    border: "1px solid rgba(160, 216, 216, 0.5)",
+                    color: "#a0d8d8",
+                    padding: "0.75rem 1rem",
+                    fontSize: "12px",
+                    letterSpacing: "0.15em",
+                    textDecoration: "none",
+                    transition: "background 0.15s, color 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLAnchorElement).style.background = "rgba(160, 216, 216, 0.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
+                  }}
+                >
+                  OPEN_PROJECT →
+                </a>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -437,6 +511,7 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
 // ─── Projects (main export) ───────────────────────────────────────────────────
 export default function Projects() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
   const sectionRef = useRef<HTMLElement | null>(null);
 
   // ── Particle dimming via IntersectionObserver ────────────────────────────
@@ -461,16 +536,12 @@ export default function Projects() {
 
   const handleSelect = useCallback((project: Project) => {
     setSelectedProject((prev) => (prev?.id === project.id ? null : project));
+    setVisitedIds((prev) => new Set([...prev, project.id]));
   }, []);
 
   const handleClose = useCallback(() => {
     setSelectedProject(null);
   }, []);
-
-  // ── Backdrop click to close panel ────────────────────────────────────────
-  const handleBackdropClick = useCallback(() => {
-    if (selectedProject) setSelectedProject(null);
-  }, [selectedProject]);
 
   return (
     <>
@@ -536,7 +607,7 @@ export default function Projects() {
               fontFamily: "monospace",
               fontSize: "10px",
               letterSpacing: "0.12em",
-              color: "#f0ebe0",
+              color: "white",
               opacity: 0.45,
               pointerEvents: "none",
               zIndex: 1,
@@ -556,28 +627,13 @@ export default function Projects() {
             position={CARD_POSITIONS[index] ?? [10 + index * 20, 10]}
             index={index}
             isSelected={selectedProject?.id === project.id}
+            isVisited={visitedIds.has(project.id)}
             onSelect={handleSelect}
           />
         ))}
       </SectionWrapper>
 
-      {/* Backdrop — dims content when panel is open, click to close */}
-      <div
-        onClick={handleBackdropClick}
-        aria-hidden="true"
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 49,
-          background: "rgba(0, 0, 0, 0.4)",
-          backdropFilter: "blur(1px)",
-          pointerEvents: selectedProject ? "auto" : "none",
-          opacity: selectedProject ? 1 : 0,
-          transition: "opacity 0.3s ease",
-        }}
-      />
-
-      {/* Detail panel — slides in from right */}
+      {/* Detail modal — centered overlay */}
       <DetailPanel project={selectedProject} onClose={handleClose} />
     </>
   );
