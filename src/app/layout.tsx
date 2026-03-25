@@ -27,8 +27,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body
-        className={`${geist.variable} ${acidic.variable} font-sans antialiased text-[#f0ebe0] bg-[#0d0d0d]`}
-        style={{ color: "#f0ebe0", backgroundColor: "#0d0d0d" }}
+        className={`${geist.variable} ${acidic.variable} font-sans antialiased text-[#f0ebe0]`}
+        style={{ color: "#f0ebe0" }}
       >
         <PageShell>{children}</PageShell>
       </body>

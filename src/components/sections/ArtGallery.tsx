@@ -2,16 +2,20 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import SectionWrapper from "@/components/ui/SectionWrapper";
-import Image from "next/image";
 import type { ArtPage } from "@/types";
 
 /**
  * ─── Art Gallery ──────────────────────────────────────────────────────────────
  *
  * Scrapbook-style page-turn gallery.
- * Vertical scroll is hijacked while there are pages left; each wheel tick
- * advances one page with a CSS 3-D page-turn animation.
- * When the last page is reached, scroll is released back to the window.
+ * Navigation is via drag-to-peel (Pointer Events), left/right arrow buttons,
+ * and ArrowLeft/ArrowRight keyboard keys.
+ * The wheel hijacking approach has been removed entirely.
+ *
+ * Drag mechanic:
+ *   - Dragging left/right rotates the page on the Y axis (--peel-angle).
+ *   - Releasing with |deltaX| > 80px completes the page turn.
+ *   - Releasing below the threshold springs back to 0.
  *
  * TODO:
  *   1. Populate ART_PAGES with real drawings from /public/images/art/.
@@ -40,150 +44,167 @@ const ART_PAGES: ArtPage[] = [
   // TODO: add more pages ↓
 ];
 
-/** Minimum accumulated vertical scroll (px) before flipping one page. */
-const PAGE_DELTA_THRESHOLD = 80;
+/** Minimum drag distance (px) before a drag commits to a page turn. */
+const DRAG_THRESHOLD = 80;
 
-/**
- * Grace period (ms) after the section enters the viewport before wheel
- * hijacking starts — lets inbound scroll momentum die out so page 0
- * isn't immediately consumed on arrival.
- */
-const ART_ENTER_DELAY_MS = 400;
-
-/**
- * Minimum accumulated vertical scroll (px) past the first/last page before
- * Y-axis scroll is released back to the page.  Keeps the boundary pages
- * visible long enough for the user to actually read them.
- */
-const ART_EXIT_DELTA = 120;
+/** Scale factor: maps drag pixels to rotation degrees. */
+const DRAG_ANGLE_SCALE = 0.3;
 
 export default function ArtGallery() {
   const [currentPage, setCurrentPage] = useState(0);
-  const [turning, setTurning] = useState<"forward" | "back" | null>(null);
 
-  // true while the section is ≥50% visible
-  const activeRef      = useRef(false);
-  // true once ART_ENTER_DELAY_MS has elapsed after entering the viewport
-  const readyRef       = useRef(false);
-  const sectionRef     = useRef<HTMLDivElement>(null);
+  // Ref copy of currentPage — prevents stale closure bugs in pointer handlers
+  const currentPageRef = useRef(0);
+  useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
+
   // true while a page-turn animation is in progress — blocks stacking turns
-  const turningRef     = useRef(false);
-  // accumulated wheel deltaY between page flips
-  const deltaAccRef    = useRef(0);
-  // accumulated wheel deltaY while at the first/last page (exit buffer)
-  const exitDeltaRef   = useRef(0);
-  // handle for the entry-delay timer so it can be cancelled on unmount
-  const enterTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const turningRef = useRef(false);
+
+  // Drag state
+  const isDraggingRef = useRef(false);
+  const dragStartXRef = useRef(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // The scrapbook page element — we write --peel-angle directly on its style
+  const pageRef = useRef<HTMLDivElement>(null);
 
   /**
-   * Triggers a page-turn animation to `next`, then commits the state change
-   * once the animation duration (600ms) has elapsed.
-   * turningRef blocks any new flip until the transition finishes.
+   * Triggers a page-turn animation to `next`, then commits the state change.
+   * Animation: rotate to ±90deg → swap page → rotate back from ∓90deg to 0.
    */
-  const goToPage = useCallback(
-    (next: number) => {
-      if (turningRef.current) return;          // animation already running
-      if (next < 0 || next >= ART_PAGES.length) return;
+  const goToPage = useCallback((next: number) => {
+    if (turningRef.current) return;
+    if (next < 0 || next >= ART_PAGES.length) return;
 
-      turningRef.current  = true;
-      deltaAccRef.current = 0;                 // discard queued delta
-      setTurning(next > currentPage ? "forward" : "back");
+    const current = currentPageRef.current;
+    const goingForward = next > current;
+    const targetAngle = goingForward ? -90 : 90;
+    const fromAngle = goingForward ? 90 : -90;
 
-      setTimeout(() => {
-        setCurrentPage(next);  // commit new page index
-        setTurning(null);      // remove animation class
-        turningRef.current = false;
-      }, 600); // must match --turn-duration in globals.css
-    },
-    [currentPage]
-  );
+    turningRef.current = true;
 
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
+    const el = pageRef.current;
+    if (el) {
+      // Animate to ±90deg (page folds away)
+      el.style.transition = "transform 0.15s ease-in";
+      el.style.transform = `rotateY(${targetAngle}deg)`;
+    }
 
-    // ── Visibility tracking ─────────────────────────────────────────────────
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          activeRef.current    = true;
-          deltaAccRef.current  = 0;
-          exitDeltaRef.current = 0;
+    setTimeout(() => {
+      // Swap the page content
+      setCurrentPage(next);
 
-          // Start entry-delay timer — wheel hijacking won't begin until it fires
-          if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
-          enterTimerRef.current = setTimeout(() => {
-            readyRef.current = true;
-          }, ART_ENTER_DELAY_MS);
-        } else {
-          // Section left the viewport — reset all scroll state
-          activeRef.current    = false;
-          readyRef.current     = false;
-          deltaAccRef.current  = 0;
-          exitDeltaRef.current = 0;
-          if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
-        }
-      },
-      { threshold: 0.5 } // fire when ≥50% of the section is visible
-    );
-    observer.observe(section);
+      if (el) {
+        // Snap to the mirror angle (no transition) then animate back to 0
+        el.style.transition = "none";
+        el.style.transform = `rotateY(${fromAngle}deg)`;
 
-    // ── Wheel handler ───────────────────────────────────────────────────────
-    const onWheel = (e: WheelEvent) => {
-      // Guard — section not visible, or still in entry-delay window
-      if (!activeRef.current || !readyRef.current) return;
+        // Force reflow so the snap takes effect before the next transition
+        void el.offsetHeight;
 
-      const atStart = currentPage === 0                       && e.deltaY < 0;
-      const atEnd   = currentPage === ART_PAGES.length - 1   && e.deltaY > 0;
-
-      // ── Boundary handling (first / last page) ───────────────────────────
-      if (atStart || atEnd) {
-        // Hold Y scroll while the user is resting on the boundary page.
-        // Only release once they've accumulated ART_EXIT_DELTA px of intent.
-        exitDeltaRef.current += e.deltaY;
-        if (Math.abs(exitDeltaRef.current) < ART_EXIT_DELTA) {
-          e.preventDefault(); // still holding Y
-          return;
-        }
-        // Threshold crossed → release Y scroll back to the page
-        exitDeltaRef.current = 0;
-        return; // no preventDefault — page scrolls normally
+        el.style.transition = "transform 0.15s ease-out";
+        el.style.transform = "rotateY(0deg)";
       }
 
-      // ── Mid-gallery: own the Y axis entirely ────────────────────────────
-      e.preventDefault();
-      exitDeltaRef.current = 0; // not at a boundary, reset exit counter
+      setTimeout(() => {
+        turningRef.current = false;
+        if (el) {
+          // Clean up inline styles — let CSS class handle the resting state
+          el.style.transition = "";
+          el.style.transform = "";
+        }
+      }, 150);
+    }, 150);
+  }, []);
 
-      // Don't stack page-turns while one is already animating
-      if (turningRef.current) return;
-
-      // Accumulate delta until the intentional-flip threshold is met
-      deltaAccRef.current += e.deltaY;
-      if (Math.abs(deltaAccRef.current) < PAGE_DELTA_THRESHOLD) return;
-
-      goToPage(deltaAccRef.current > 0 ? currentPage + 1 : currentPage - 1);
+  // Keyboard navigation
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") goToPage(currentPageRef.current + 1);
+      if (e.key === "ArrowLeft")  goToPage(currentPageRef.current - 1);
     };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [goToPage]);
 
-    // passive: false required to allow e.preventDefault() inside the handler
-    window.addEventListener("wheel", onWheel, { passive: false });
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("wheel", onWheel);
-      if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
-    };
-  }, [currentPage, goToPage]);
+  // ── Pointer event handlers ─────────────────────────────────────────────────
+
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (turningRef.current) return;
+    isDraggingRef.current = true;
+    dragStartXRef.current = e.clientX;
+    setIsDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }, []);
+
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current) return;
+    const deltaX = e.clientX - dragStartXRef.current;
+    const angle = deltaX * DRAG_ANGLE_SCALE;
+    const el = pageRef.current;
+    if (el) {
+      el.style.transition = "none";
+      el.style.transform = `rotateY(${angle}deg)`;
+    }
+  }, []);
+
+  const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    setIsDragging(false);
+
+    const deltaX = e.clientX - dragStartXRef.current;
+    const el = pageRef.current;
+
+    if (Math.abs(deltaX) > DRAG_THRESHOLD) {
+      // Commit the page turn — goToPage takes over the animation from here
+      // Reset the inline transform first so goToPage's animation starts clean
+      if (el) {
+        el.style.transition = "";
+        el.style.transform = "";
+      }
+      goToPage(deltaX < 0 ? currentPageRef.current + 1 : currentPageRef.current - 1);
+    } else {
+      // Spring back to neutral
+      if (el) {
+        el.style.transition = "transform 0.3s ease-out";
+        el.style.transform = "rotateY(0deg)";
+        setTimeout(() => {
+          el.style.transition = "";
+          el.style.transform = "";
+        }, 300);
+      }
+    }
+  }, [goToPage]);
+
+  const onPointerCancel = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    setIsDragging(false);
+
+    const el = pageRef.current;
+    if (el) {
+      el.style.transition = "transform 0.3s ease-out";
+      el.style.transform = "rotateY(0deg)";
+      setTimeout(() => {
+        el.style.transition = "";
+        el.style.transform = "";
+      }, 300);
+    }
+  }, []);
 
   const page = ART_PAGES[currentPage];
 
   return (
     <SectionWrapper id="art">
       <div
-        ref={sectionRef}
         className="relative flex h-screen w-full items-center justify-center overflow-hidden"
         style={
           {
             perspective: "1200px",
-            "--turn-duration": "0.6s",
+            "--turn-duration": "0.15s",
           } as React.CSSProperties
         }
       >
@@ -210,17 +231,25 @@ export default function ArtGallery() {
           →
         </button>
 
-        {/* ── The scrapbook page — TODO: replace bg-[#faf6ee] with paper texture via backgroundImage ── */}
+        {/* ── The scrapbook page — drag to peel ── */}
         <div
+          ref={pageRef}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerCancel}
           className={`
             relative h-[80vh] w-[70vw] max-w-3xl
             rounded-sm border border-current/20
             bg-[#faf6ee]
             shadow-[4px_4px_0_rgba(0,0,0,0.12)]
-            transition-transform
-            ${turning === "forward" ? "animate-page-turn-forward" : ""}
-            ${turning === "back"    ? "animate-page-turn-back"    : ""}
+            select-none
+            ${isDragging ? "cursor-grabbing" : "cursor-grab"}
           `}
+          style={{
+            // Resting state: no inline transform — animation writes directly when active
+            touchAction: "none",
+          }}
         >
           {/* Drawings scattered on the page */}
           {page.drawings.map((piece) => (

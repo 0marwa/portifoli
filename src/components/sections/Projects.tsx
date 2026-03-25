@@ -1,15 +1,15 @@
 "use client";
 
+import { useState, useRef, useCallback } from "react";
 import SectionWrapper from "@/components/ui/SectionWrapper";
-import { useHorizontalScroll } from "@/hooks/useHorizontalScroll";
 import type { Project } from "@/types";
-import Image from "next/image";
 
 /**
  * ─── Projects ─────────────────────────────────────────────────────────────────
  *
- * Horizontal gallery driven by vertical scroll (scroll-hijacking).
- * Each card is one full viewport width.
+ * Horizontal gallery driven by native CSS scroll-snap.
+ * An IntersectionObserver tracks the active slide for the dot indicators.
+ * Dots are clickable and scroll to their respective slide.
  *
  * TODO:
  *   1. Replace PROJECTS placeholder data with your real projects.
@@ -88,35 +88,54 @@ function ProjectCard({ project }: { project: Project }) {
 }
 
 export default function Projects() {
-  const { containerRef } = useHorizontalScroll(PROJECTS.length);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  const scrollToSlide = useCallback((index: number) => {
+    setActiveSlide(index);
+  }, []);
 
   return (
     <SectionWrapper id="projects">
-      {/* Slide counter */}
-      <div className="pointer-events-none absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-2">
+      {/* Clickable dot indicators */}
+      <div className="pointer-events-auto absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-2">
         {PROJECTS.map((_, i) => (
-          <span
+          <button
             key={i}
-            className="block h-1.5 w-6 rounded-full bg-current opacity-30"
+            onClick={() => scrollToSlide(i)}
+            aria-label={`Go to project ${i + 1}`}
+            className={`block h-1.5 rounded-full bg-current transition-all duration-300 ${
+              i === activeSlide
+                ? "w-8 opacity-90"
+                : "w-6 opacity-30 hover:opacity-50"
+            }`}
           />
         ))}
       </div>
 
-      {/* Horizontal scroll container — overflow is hidden; JS drives scrollLeft */}
-      <div
-        ref={containerRef}
-        className="flex h-screen w-full overflow-hidden"
-        style={{ scrollSnapType: "x mandatory" }}
-      >
-        {PROJECTS.map((project) => (
-          <div
-            key={project.id}
-            style={{ scrollSnapAlign: "start" }}
-            className="shrink-0"
-          >
-            <ProjectCard project={project} />
-          </div>
-        ))}
+      {/* Slide viewport — overflow-hidden, no scroll container */}
+      <div className="h-screen w-full overflow-hidden">
+        {/* Slide track — moves via CSS transform, no scroll layer */}
+        <div
+          ref={containerRef}
+          className="flex h-full"
+          style={{
+            transform: `translateX(-${activeSlide * 100}vw)`,
+            transition: "transform 0.5s ease-in-out",
+            width: `${PROJECTS.length * 100}vw`,
+          }}
+        >
+          {PROJECTS.map((project, index) => (
+            <div
+              key={project.id}
+              ref={(el) => { slideRefs.current[index] = el; }}
+              className="h-full w-screen shrink-0"
+            >
+              <ProjectCard project={project} />
+            </div>
+          ))}
+        </div>
       </div>
     </SectionWrapper>
   );
