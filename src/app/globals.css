@@ -19,6 +19,35 @@
   to   { opacity: 1; transform: translateY(0);   }
 }
 
+@keyframes glitch-text {
+  0%, 89%, 100% { clip-path: none; transform: none; opacity: 1; }
+  90%  { clip-path: inset(10% 0 80% 0); transform: translate(-3px, 0); opacity: 0.9; }
+  92%  { clip-path: inset(50% 0 30% 0); transform: translate(3px, 0);  opacity: 0.8; }
+  94%  { clip-path: inset(80% 0 5% 0);  transform: translate(-2px, 0); opacity: 0.9; }
+  96%  { clip-path: none; transform: translate(1px, 0); opacity: 1; }
+}
+
+@keyframes glitch-line {
+  0%, 94%, 100% { opacity: 0.35; transform: scaleX(1); }
+  95% { opacity: 0.15; transform: scaleX(1.03); }
+  97% { opacity: 0.5;  transform: scaleX(0.98); }
+}
+
+@keyframes node-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(180, 220, 220, 0); }
+  50%       { box-shadow: 0 0 8px 2px rgba(180, 220, 220, 0.12); }
+}
+
+@keyframes float-label {
+  0%, 100% { transform: translateY(0px);   opacity: 0.45; }
+  50%       { transform: translateY(-3px);  opacity: 0.65; }
+}
+
+@keyframes panel-slide-in {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-acidic: var(--font-acidic);
@@ -26,6 +55,11 @@
   --animate-page-turn-forward: page-turn-forward 0.6s ease-in-out;
   --animate-page-turn-back:    page-turn-back    0.6s ease-in-out;
   --animate-fade-in:           fade-in           0.5s ease-out forwards;
+  --animate-glitch-text:       glitch-text       4s  step-end infinite;
+  --animate-glitch-line:       glitch-line       6s  step-end infinite;
+  --animate-node-pulse:        node-pulse        3s  ease-in-out infinite;
+  --animate-float-label:       float-label       4s  ease-in-out infinite;
+  --animate-panel-slide-in:    panel-slide-in    0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* ─── Base ────────────────────────────────────────────────────────────────── */
