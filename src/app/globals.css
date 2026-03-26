@@ -43,6 +43,21 @@
   50%       { transform: translateY(-3px);  opacity: 0.65; }
 }
 
+@keyframes node-drift {
+  0%, 100% { transform: translate(0, 0); }
+  25%       { transform: translate(1px, -2px); }
+  50%       { transform: translate(-1px, 1px); }
+  75%       { transform: translate(2px, 1px); }
+}
+
+@keyframes placeholder-noise {
+  0%, 100% { opacity: 0.08; clip-path: inset(0 0 0 0); }
+  20%       { opacity: 0.12; clip-path: inset(15% 0 70% 0); }
+  40%       { opacity: 0.06; clip-path: inset(60% 0 20% 0); }
+  60%       { opacity: 0.10; clip-path: inset(30% 5% 50% 5%); }
+  80%       { opacity: 0.07; clip-path: inset(80% 0 5% 0); }
+}
+
 @keyframes panel-slide-in {
   from { transform: translateX(100%); }
   to   { transform: translateX(0); }
@@ -60,6 +75,8 @@
   --animate-node-pulse:        node-pulse        3s  ease-in-out infinite;
   --animate-float-label:       float-label       4s  ease-in-out infinite;
   --animate-panel-slide-in:    panel-slide-in    0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-node-drift:        node-drift        8s  ease-in-out infinite;
+  --animate-placeholder-noise: placeholder-noise 2.1s step-end infinite;
 }
 
 /* ─── Base ────────────────────────────────────────────────────────────────── */
