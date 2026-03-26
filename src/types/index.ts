@@ -8,6 +8,8 @@ export interface NavLink {
 }
 
 // ─── Project card ─────────────────────────────────────────────────────────────
+export type ProjectCategory = 'academic' | 'personal' | 'volunteering';
+
 export interface Project {
   id: string;
   title: string;
@@ -15,6 +17,7 @@ export interface Project {
   tags: string[];
   image: string; // path relative to /public
   link?: string;
+  category: ProjectCategory;
 }
 
 // ─── Art page ─────────────────────────────────────────────────────────────────

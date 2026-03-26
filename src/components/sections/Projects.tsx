@@ -725,8 +725,8 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
                   style={{
                     display: "block",
                     textAlign: "center",
-                    border: "1px solid rgba(160, 216, 216, 0.5)",
-                    color: "#a0d8d8",
+                    border: "1px solid rgba(255, 255, 255, 0.5)",
+                    color: "white",
                     padding: "0.75rem 1rem",
                     fontSize: "12px",
                     letterSpacing: "0.15em",
@@ -734,7 +734,7 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
                     transition: "background 0.15s, color 0.15s",
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLAnchorElement).style.background = "rgba(160, 216, 216, 0.1)";
+                    (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255, 255, 255, 0.1)";
                   }}
                   onMouseLeave={(e) => {
                     (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
@@ -894,13 +894,13 @@ export default function Projects() {
                 padding: "0.2rem 0.6rem",
                 border:
                   activeFilter === value
-                    ? "1px solid rgba(160,216,216,0.8)"
-                    : "1px solid rgba(255,255,255,0.25)",
+                    ? "1px solid rgba(255,255,255,0.9)"
+                    : "1px solid rgba(255,255,255,0.4)",
                 color:
-                  activeFilter === value ? "#a0d8d8" : "rgba(255,255,255,0.5)",
+                  activeFilter === value ? "white" : "rgba(255,255,255,0.7)",
                 background:
                   activeFilter === value
-                    ? "rgba(160,216,216,0.08)"
+                    ? "rgba(255,255,255,0.08)"
                     : "transparent",
                 cursor: "pointer",
                 transition: "all 0.2s",
@@ -927,7 +927,7 @@ export default function Projects() {
               fontSize: "10px",
               letterSpacing: "0.12em",
               color: "white",
-              opacity: 0.45,
+              opacity: 1,
               pointerEvents: "none",
               zIndex: 1,
               animation: `float-label ${3.5 + i * 0.5}s ease-in-out infinite, glitch-text ${7 + i * 1.3}s step-end infinite`,
