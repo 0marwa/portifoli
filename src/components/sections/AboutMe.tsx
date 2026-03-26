@@ -42,6 +42,7 @@ function InfoBlurb({ id, label, value, position, rotation = 0 }: InfoBlurbProps)
       </p>
       <p
         className="relative z-10 mt-1 text-base leading-snug font-acidic"
+        data-glitchable
       >
         {value}
       </p>

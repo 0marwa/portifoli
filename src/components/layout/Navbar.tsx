@@ -33,6 +33,7 @@ export default function Navbar() {
           key={link.href}
           href={`#${link.href}`}
           onClick={(e) => handleClick(e, link.href)}
+          data-glitchable
           /* ↓ swap this className for your grungy handwritten font class */
           className="font-sans text-sm uppercase tracking-widest text-current opacity-80 transition-opacity hover:opacity-100"
         >

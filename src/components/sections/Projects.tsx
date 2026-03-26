@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import SectionWrapper from "@/components/ui/SectionWrapper";
-import type { Project } from "@/types";
+import type { Project, ProjectCategory } from "@/types";
+import { useTextScramble } from "@/hooks/useTextScramble";
 
 // ─── Project data ──────────────────────────────────────────────────────────────
 const PROJECTS: Project[] = [
@@ -13,6 +14,7 @@ const PROJECTS: Project[] = [
       "AI-powered travel planner built solo, end-to-end. Next.js + React Native frontend, TypeScript business logic, external API integrations. Designed and shipped the full stack autonomously.",
     tags: ["Next.js", "React Native", "TypeScript"],
     image: "/images/projects/cittitrip.png",
+    category: "personal",
   },
   {
     id: "elysium",
@@ -21,6 +23,7 @@ const PROJECTS: Project[] = [
       "Production website for a Moroccan company, including a functional chatbot via API integration. Responsible for front-end architecture, API wiring, and live deployment in a real client context.",
     tags: ["Next.js", "TypeScript", "APIs"],
     image: "/images/projects/elysium.png",
+    category: "personal",
   },
   {
     id: "feedme",
@@ -30,6 +33,7 @@ const PROJECTS: Project[] = [
     tags: ["Kotlin", "Figma", "SCRUM"],
     image: "/images/projects/feedme.png",
     link: "https://github.com/",
+    category: "academic",
   },
   {
     id: "scala-webapp",
@@ -38,30 +42,70 @@ const PROJECTS: Project[] = [
       "Academic web application built for EPFL's Software Construction course. Focused on software architecture, clean separation of concerns, and UI implementation in Scala.",
     tags: ["Scala", "Web", "EPFL"],
     image: "/images/projects/scala-webapp.png",
+    category: "academic",
   },
 ];
 
-// ─── Card positions — hardcoded scatter across the viewport ───────────────────
-// Each tuple is [top%, left%]. Chosen manually for a messy-intentional feel.
+// ─── Filter options ────────────────────────────────────────────────────────────
+const FILTER_OPTIONS: { label: string; value: ProjectCategory | "all" }[] = [
+  { label: "ALL",          value: "all"          },
+  { label: "PERSONAL",     value: "personal"     },
+  { label: "ACADEMIC",     value: "academic"     },
+  { label: "VOLUNTEERING", value: "volunteering" },
+];
+
+// ─── Card positions — hardcoded scatter: indices 0-3 real, 4-7 empty slots ────
+// Each tuple is [top%, left%].
 const CARD_POSITIONS: [number, number][] = [
-  [8,  6],
-  [10, 54],
-  [54, 18],
-  [58, 62],
+  [8,  6],   // 0 cittitrip
+  [10, 54],  // 1 elysium
+  [54, 18],  // 2 feedme
+  [58, 62],  // 3 scala-webapp
+  [30, 78],  // 4 empty
+  [80, 55],  // 5 empty
+  [75, 8],   // 6 empty
+  [35, 2],   // 7 empty
 ];
 
-// ─── SVG connector lines between cards ────────────────────────────────────────
-// Each tuple is [fromIndex, toIndex]. Draws a line between those card centres.
-// Centre of card i ≈ [CARD_POSITIONS[i][1] + 11, CARD_POSITIONS[i][0] + 6] in %.
+// ─── Card width/height constants (used for centre calculation) ─────────────────
+const CARD_W_PCT = 15;
+const CARD_H_PCT = 12;
+
+// ─── Center node position: geometric center of all 4 real card positions ──────
+const CENTER_NODE_POS: [number, number] = (() => {
+  const realCards = CARD_POSITIONS.slice(0, 4);
+  const avgTop  = realCards.reduce((s, [t]) => s + t, 0) / realCards.length + CARD_H_PCT / 2;
+  const avgLeft = realCards.reduce((s, [, l]) => s + l, 0) / realCards.length + CARD_W_PCT / 2;
+  return [avgTop, avgLeft];
+})();
+
+const CENTER_IDX = 8; // virtual index for connections
+
+// ─── SVG connector lines — full mesh topology ─────────────────────────────────
+// Indices 0-5: real node mesh (all 4 project nodes fully connected)
+// Indices 6-9: center hub to all 4 real nodes
+// Indices 10-13: empty slot peripherals, each connected to one real node
 const CONNECTIONS: [number, number][] = [
-  [0, 1],
-  [0, 2],
-  [1, 3],
-  [2, 3],
-  [1, 2],
+  // Full mesh between 4 real project nodes — creates crossing lines
+  [0, 1],        // 0
+  [0, 2],        // 1
+  [0, 3],        // 2
+  [1, 2],        // 3
+  [1, 3],        // 4
+  [2, 3],        // 5
+  // Center node connects to all 4 real nodes (hub role)
+  [CENTER_IDX, 0], // 6
+  [CENTER_IDX, 1], // 7
+  [CENTER_IDX, 2], // 8
+  [CENTER_IDX, 3], // 9
+  // Empty slots each connect to one real node (peripheral nodes)
+  [0, 7],        // 10
+  [1, 4],        // 11
+  [2, 6],        // 12
+  [3, 5],        // 13
 ];
 
-// ─── Glitch labels floating between nodes ─────────────────────────────────────
+// ─── Glitch labels — positioned near midpoints of the 6 real mesh connections ─
 interface GlitchLabel {
   text: string;
   top: number;  // %
@@ -69,27 +113,35 @@ interface GlitchLabel {
   delay: number; // animation-delay in seconds
 }
 
-const GLITCH_LABELS: GlitchLabel[] = [
-  { text: "ref_0x4f",   top: 6,  left: 33, delay: 0    },
-  { text: "→ null",     top: 34, left: 8,  delay: 1.2  },
-  { text: "⌀ link",     top: 28, left: 72, delay: 0.6  },
-  { text: "0b1101",     top: 65, left: 44, delay: 1.8  },
-  { text: "ERR//03",    top: 80, left: 78, delay: 0.3  },
-  { text: "undef→",     top: 80, left: 12, delay: 2.1  },
-];
-
-// ─── Card width/height constants (used for centre calculation) ─────────────────
-// These match the rendered card dimensions so SVG lines land accurately.
-// Card: w ≈ 220px (~14vw), h ≈ 120px (~10vh) — centre offset added to top/left.
-const CARD_W_PCT = 15; // approximate card width as % of viewport width
-const CARD_H_PCT = 12; // approximate card height as % of viewport height
-
 function cardCentre(index: number): [number, number] {
+  if (index === CENTER_IDX) return CENTER_NODE_POS;
   const [top, left] = CARD_POSITIONS[index];
   return [top + CARD_H_PCT / 2, left + CARD_W_PCT / 2];
 }
 
-// ─── Glitchy preview text shown inside each collapsed card ────────────────────
+// Precompute mesh midpoints for label placement:
+// node0 centre ≈ [14, 13.5], node1 ≈ [16, 61.5], node2 ≈ [60, 25.5], node3 ≈ [64, 69.5]
+// conn[0,1] mid ≈ [15, 37.5]  conn[0,2] mid ≈ [37, 19.5]  conn[0,3] mid ≈ [39, 41.5]
+// conn[1,2] mid ≈ [38, 43.5]  conn[1,3] mid ≈ [40, 65.5]  conn[2,3] mid ≈ [62, 47.5]
+const GLITCH_LABELS: GlitchLabel[] = [
+  // conn [0,1] — two labels
+  { text: "ref_0x4f",  top: 14,  left: 35,  delay: 0   },
+  { text: "→ null",    top: 16,  left: 40,  delay: 1.2 },
+  // conn [0,2]
+  { text: "0b1101",    top: 35,  left: 18,  delay: 0.6 },
+  // conn [0,3] — two labels
+  { text: "NULL_PTR",  top: 37,  left: 39,  delay: 1.8 },
+  { text: "0x0000",    top: 41,  left: 43,  delay: 2.7 },
+  // conn [1,2]
+  { text: "ERR//03",   top: 36,  left: 46,  delay: 0.3 },
+  // conn [1,3]
+  { text: "undef→",    top: 38,  left: 66,  delay: 2.1 },
+  // conn [2,3] — two labels
+  { text: "//EMPTY",   top: 60,  left: 45,  delay: 0.8 },
+  { text: "⌀ link",   top: 64,  left: 50,  delay: 1.5 },
+];
+
+// ─── Glitchy preview text shown inside each collapsed real card ───────────────
 const GLITCH_PREVIEWS = [
   ["▓▓ AI_TRAVEL", "plan() → trip", "// next.js"],
   ["▓ CHATBOT",    "POST /api/chat", "// deployed"],
@@ -97,18 +149,163 @@ const GLITCH_PREVIEWS = [
   ["▓ WEB_APP",    "build(scala)",   "// EPFL"],
 ];
 
+// ─── EmptyNode — minimal dot/crosshair, no border box ────────────────────────
+interface EmptyNodeProps {
+  index: number; // 4–7
+}
+
+function EmptyNode({ index }: EmptyNodeProps) {
+  const [top, left] = CARD_POSITIONS[index];
+  const slotLabel = `slot_${String(index).padStart(2, "0")}`;
+
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position: "absolute",
+        top: `${top + CARD_H_PCT / 2}%`,
+        left: `${left + CARD_W_PCT / 2}%`,
+        transform: "translate(-50%, -50%)",
+        fontFamily: "monospace",
+        pointerEvents: "none",
+        zIndex: 2,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "4px",
+      }}
+    >
+      {/* Crosshair dot */}
+      <div
+        style={{
+          position: "relative",
+          width: "10px",
+          height: "10px",
+          opacity: 0.35,
+        }}
+      >
+        {/* Horizontal arm */}
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: 0,
+          right: 0,
+          height: "1px",
+          background: "white",
+          transform: "translateY(-50%)",
+        }} />
+        {/* Vertical arm */}
+        <div style={{
+          position: "absolute",
+          left: "50%",
+          top: 0,
+          bottom: 0,
+          width: "1px",
+          background: "white",
+          transform: "translateX(-50%)",
+        }} />
+        {/* Centre dot */}
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          width: "3px",
+          height: "3px",
+          background: "rgba(255,255,255,0.7)",
+          transform: "translate(-50%, -50%)",
+          borderRadius: "50%",
+        }} />
+      </div>
+      {/* Slot label */}
+      <div style={{
+        fontSize: "8px",
+        letterSpacing: "0.15em",
+        opacity: 0.25,
+        whiteSpace: "nowrap",
+      }}>
+        {slotLabel}
+      </div>
+    </div>
+  );
+}
+
+// ─── CenterTitleNode ───────────────────────────────────────────────────────────
+interface CenterTitleNodeProps {
+  scrambleTrigger: boolean;
+}
+
+function CenterTitleNode({ scrambleTrigger }: CenterTitleNodeProps) {
+  const [top, left] = CENTER_NODE_POS;
+  const { displayText } = useTextScramble("projects", scrambleTrigger, { duration: 800 });
+
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position: "absolute",
+        top: `${top}%`,
+        left: `${left}%`,
+        transform: "translate(-50%, -50%)",
+        width: "110px",
+        fontFamily: "monospace",
+        border: "1px solid rgba(255, 255, 255, 0.5)",
+        background: "rgba(0, 0, 0, 0.75)",
+        padding: "0.35rem 0.6rem",
+        pointerEvents: "none",
+        zIndex: 2,
+        animation: "node-drift 8s ease-in-out infinite",
+      }}
+    >
+      {/* Node label */}
+      <div style={{ fontSize: "8px", letterSpacing: "0.18em", opacity: 0.35, marginBottom: "0.25rem" }}>
+        node_root
+      </div>
+      {/* Scrambled title in Acidic font */}
+      <div
+        data-glitchable
+        style={{
+          fontFamily: "var(--font-acidic), monospace",
+          fontSize: "clamp(0.75rem, 1.4vw, 1rem)",
+          color: "white",
+          letterSpacing: "0.08em",
+          whiteSpace: "nowrap",
+          textShadow: "0 0 8px rgba(255,255,255,0.3)",
+        }}
+      >
+        {displayText}
+      </div>
+    </div>
+  );
+}
+
 // ─── ProjectNode ──────────────────────────────────────────────────────────────
 interface ProjectNodeProps {
   project: Project;
   position: [number, number];
   index: number;
   isSelected: boolean;
+  isFiltered: boolean;
   onSelect: (project: Project) => void;
+  scrambleTrigger: boolean;
 }
 
-function ProjectNode({ project, position, index, isSelected, onSelect }: ProjectNodeProps) {
+function ProjectNode({
+  project,
+  position,
+  index,
+  isSelected,
+  isFiltered,
+  onSelect,
+  scrambleTrigger,
+}: ProjectNodeProps) {
   const [top, left] = position;
   const preview = GLITCH_PREVIEWS[index] ?? ["▓▓ ???", "// unknown"];
+
+  const { displayText: scrambledTitle } = useTextScramble(
+    project.title.toUpperCase(),
+    scrambleTrigger,
+    { duration: 900 + index * 120 }
+  );
 
   return (
     <button
@@ -120,15 +317,21 @@ function ProjectNode({ project, position, index, isSelected, onSelect }: Project
         top: `${top}%`,
         left: `${left}%`,
         fontFamily: "monospace",
-        animation: `node-pulse ${2.5 + index * 0.4}s ease-in-out infinite`,
-        animationDelay: `${index * 0.3}s`,
+        animation: isFiltered
+          ? undefined
+          : `node-pulse ${2.5 + index * 0.4}s ease-in-out infinite`,
+        animationDelay: isFiltered ? undefined : `${index * 0.3}s`,
+        opacity: isFiltered ? 0.2 : 1,
+        pointerEvents: isFiltered ? "none" : "auto",
+        transition: "opacity 0.3s ease",
+        zIndex: 2,
       }}
       className={[
-        "group w-[220px] cursor-pointer border px-4 py-3 text-left transition-all duration-200",
+        "group w-[220px] cursor-pointer border px-4 py-3 text-left duration-200",
         "focus:outline-none focus-visible:ring-1 focus-visible:ring-current",
         isSelected
-          ? "border-[#a0d8d8] bg-black/70 text-[#a0d8d8]"
-          : "border-white/60 bg-[#0a0a0a]/90 text-white/90 hover:border-white hover:text-white",
+          ? "border-white bg-black/70 text-white"
+          : "border-white bg-[#0a0a0a]/90 text-white hover:border-white hover:text-white",
       ].join(" ")}
     >
       {/* Node ID */}
@@ -139,12 +342,16 @@ function ProjectNode({ project, position, index, isSelected, onSelect }: Project
         <span className="text-[10px] opacity-30">[{project.tags[0]}]</span>
       </div>
 
-      {/* Title with glitch */}
+      {/* Title with scramble-on-enter effect */}
       <div
+        data-glitchable
         className="text-sm font-bold tracking-wide"
-        style={{ animation: `glitch-text ${3.5 + index * 0.7}s step-end infinite`, animationDelay: `${index * 0.9}s` }}
+        style={{
+          animation: `glitch-text ${3.5 + index * 0.7}s step-end infinite`,
+          animationDelay: `${index * 0.9}s`,
+        }}
       >
-        {project.title.toUpperCase()}
+        {scrambledTitle}
       </div>
 
       {/* Glitchy preview lines */}
@@ -161,7 +368,7 @@ function ProjectNode({ project, position, index, isSelected, onSelect }: Project
         <div
           className={[
             "h-1.5 w-1.5 rounded-full",
-            isSelected ? "bg-[#a0d8d8]" : "bg-current opacity-40 group-hover:opacity-80",
+            isSelected ? "bg-white" : "bg-current opacity-40 group-hover:opacity-80",
           ].join(" ")}
         />
         <span className="text-[10px] opacity-40 tracking-widest">
@@ -173,7 +380,11 @@ function ProjectNode({ project, position, index, isSelected, onSelect }: Project
 }
 
 // ─── ConnectorSVG ─────────────────────────────────────────────────────────────
-function ConnectorSVG() {
+interface ConnectorSVGProps {
+  lineOverrides: Map<number, [number, number]>;
+}
+
+function ConnectorSVG({ lineOverrides }: ConnectorSVGProps) {
   return (
     <svg
       aria-hidden="true"
@@ -183,24 +394,66 @@ function ConnectorSVG() {
         width: "100%",
         height: "100%",
         pointerEvents: "none",
-        zIndex: 0,
+        zIndex: 1,
       }}
     >
       <defs>
-        {/* Scanline/noise filter for the lines */}
+        {/* Scanline/noise filter with SMIL animation for dramatic line flicker spikes */}
         <filter id="line-noise" x="-5%" y="-5%" width="110%" height="110%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" result="noise" seed="2" />
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5" xChannelSelector="R" yChannelSelector="G" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" result="noise" seed="2">
+            <animate
+              attributeName="baseFrequency"
+              values="0.9;0.9;0.9;1.6;0.9;0.9;2.2;0.9"
+              dur="13s"
+              repeatCount="indefinite"
+            />
+          </feTurbulence>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5" xChannelSelector="R" yChannelSelector="G">
+            <animate
+              attributeName="scale"
+              values="1.5;1.5;1.5;5;1.5;1.5;8;1.5"
+              dur="13s"
+              repeatCount="indefinite"
+            />
+          </feDisplacementMap>
         </filter>
+
+        {/* Arrowhead marker — for primary mesh and center connections */}
+        <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L6,3 z" fill="white" fillOpacity="0.7" />
+        </marker>
+
+        {/* Faint arrowhead — for ghost duplicate lines */}
+        <marker id="arrow-faint" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L6,3 z" fill="white" fillOpacity="0.2" />
+        </marker>
       </defs>
 
-      {CONNECTIONS.map(([fromIdx, toIdx], i) => {
+      {CONNECTIONS.map(([realFromIdx, realToIdx], i) => {
+        // Apply rewire override if present
+        const override = lineOverrides.get(i);
+        const fromIdx = override ? override[0] : realFromIdx;
+        const toIdx   = override ? override[1] : realToIdx;
+
         const [fromTop, fromLeft] = cardCentre(fromIdx);
         const [toTop, toLeft]     = cardCentre(toIdx);
 
-        // Midpoint for the "glitch break" effect — a slightly offset second line segment
         const midLeft = (fromLeft + toLeft) / 2;
         const midTop  = (fromTop + toTop) / 2;
+
+        // Connection type drives styling:
+        // 0-5: real mesh     → strokeWidth 1, opacity 0.55, arrowhead
+        // 6-9: center hub    → strokeWidth 0.8, opacity 0.35, arrowhead
+        // 10-13: empty slots → strokeWidth 0.6, opacity 0.2, no arrowhead
+        const isMesh        = i <= 5;
+        const isCenterHub   = i >= 6 && i <= 9;
+        const isEmptySpoke  = i >= 10;
+
+        const strokeWidth   = isMesh ? 1 : isCenterHub ? 0.8 : 0.6;
+        const primaryOpacity = isMesh ? 0.55 : isCenterHub ? 0.35 : 0.2;
+        const ghostOpacity   = primaryOpacity * 0.5;
+        const markerEnd      = isEmptySpoke ? undefined : "url(#arrow)";
+        const ghostMarkerEnd = isEmptySpoke ? undefined : "url(#arrow-faint)";
 
         return (
           <g key={i} filter="url(#line-noise)">
@@ -209,20 +462,22 @@ function ConnectorSVG() {
               x1={`${fromLeft}%`} y1={`${fromTop}%`}
               x2={`${toLeft}%`}   y2={`${toTop}%`}
               stroke="white"
-              strokeWidth="0.5"
-              strokeOpacity="0.25"
+              strokeWidth={strokeWidth}
+              strokeOpacity={primaryOpacity}
+              markerEnd={markerEnd}
               style={{
                 animation: `glitch-line ${5 + i * 1.1}s step-end infinite`,
                 animationDelay: `${i * 0.7}s`,
               }}
             />
-            {/* Ghost offset line — gives corrupted-duplicate feeling */}
+            {/* Ghost offset line — corrupted-duplicate feel */}
             <line
               x1={`${fromLeft + 0.15}%`} y1={`${fromTop + 0.1}%`}
               x2={`${midLeft}%`}          y2={`${midTop}%`}
               stroke="white"
-              strokeWidth="0.3"
-              strokeOpacity="0.12"
+              strokeWidth={strokeWidth * 0.4}
+              strokeOpacity={ghostOpacity}
+              markerEnd={ghostMarkerEnd}
               style={{
                 animation: `glitch-line ${4 + i * 0.8}s step-end infinite`,
                 animationDelay: `${i * 0.4 + 0.3}s`,
@@ -234,7 +489,7 @@ function ConnectorSVG() {
               cy={`${midTop}%`}
               r="1.5"
               fill="white"
-              fillOpacity="0.15"
+              fillOpacity={primaryOpacity * 0.6}
             />
           </g>
         );
@@ -272,7 +527,6 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
   const isOpen = project !== null;
 
   return (
-    // Backdrop — click outside to close
     <div
       role="presentation"
       onClick={onClose}
@@ -287,7 +541,7 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
         transition: "opacity 0.25s ease",
       }}
     >
-      {/* Modal card — stop propagation so clicking inside doesn't close */}
+      {/* Modal card */}
       <div
         role="dialog"
         aria-modal="true"
@@ -307,7 +561,7 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
           maxHeight: "80vh",
           overflowY: "auto",
           background: "rgba(8, 12, 12, 0.98)",
-          border: "1px solid rgba(160, 216, 216, 0.3)",
+          border: "1px solid rgba(255, 255, 255, 0.3)",
           fontFamily: "monospace",
           display: "flex",
           flexDirection: "column",
@@ -336,7 +590,7 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
                     fontWeight: "bold",
                     letterSpacing: "0.05em",
                     fontFamily: "var(--font-acidic), monospace",
-                    color: "#a0d8d8",
+                    color: "white",
                     lineHeight: 1.2,
                     animation: "glitch-text 6s step-end infinite",
                   }}
@@ -385,8 +639,8 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
                     <span
                       key={tag}
                       style={{
-                        border: "1px solid rgba(160, 216, 216, 0.4)",
-                        color: "#a0d8d8",
+                        border: "1px solid rgba(255, 255, 255, 0.4)",
+                        color: "white",
                         padding: "0.2rem 0.6rem",
                         fontSize: "11px",
                         letterSpacing: "0.08em",
@@ -398,7 +652,7 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
                 </div>
               </div>
 
-              {/* Preview image — full quality in detail view */}
+              {/* Preview image — bitmap reveal */}
               <div>
                 <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.75rem" }}>
                   preview.png
@@ -500,25 +754,30 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
 // ─── Projects (main export) ───────────────────────────────────────────────────
 export default function Projects() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const sectionRef = useRef<HTMLElement | null>(null);
+  const [activeFilter, setActiveFilter] = useState<ProjectCategory | "all">("all");
+  const [lineOverrides, setLineOverrides] = useState<Map<number, [number, number]>>(new Map());
 
-  // ── Particle dimming via IntersectionObserver ────────────────────────────
+  // ── Scramble trigger: fire once on #projects entering viewport at 30% ──────
+  const [scrambleTrigger, setScrambleTrigger] = useState(false);
+  const hasTriggeredRef = useRef(false);
+
   useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
+    const section = document.getElementById("projects");
+    if (!section) return;
 
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          document.documentElement.dataset.dimParticles = "1";
-        } else {
-          delete document.documentElement.dataset.dimParticles;
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting && !hasTriggeredRef.current) {
+            hasTriggeredRef.current = true;
+            setScrambleTrigger(true);
+            observer.disconnect();
+          }
         }
       },
-      { threshold: 0.4 },
+      { threshold: 0.30 }
     );
-
-    observer.observe(el);
+    observer.observe(section);
     return () => observer.disconnect();
   }, []);
 
@@ -528,6 +787,51 @@ export default function Projects() {
 
   const handleClose = useCallback(() => {
     setSelectedProject(null);
+  }, []);
+
+  // ── Line rewire effect: randomly redirect 1-2 connections from mesh+hub ────
+  useEffect(() => {
+    const totalNodes = CARD_POSITIONS.length + 1; // 0-7 + CENTER_IDX(8)
+    // Only rewire from real mesh + center connections (indices 0-9)
+    const rewirableCount = 10;
+
+    function scheduleRewire() {
+      const delay = 3000 + Math.random() * 4000; // 3–7 seconds
+      return setTimeout(() => {
+        const count = Math.random() < 0.4 ? 2 : 1;
+        const overrides = new Map<number, [number, number]>();
+
+        for (let n = 0; n < count; n++) {
+          const connIdx = Math.floor(Math.random() * rewirableCount);
+          const [realFrom, realTo] = CONNECTIONS[connIdx];
+          let newTo: number;
+          do {
+            newTo = Math.floor(Math.random() * totalNodes);
+            if (newTo === CARD_POSITIONS.length) newTo = CENTER_IDX;
+          } while (newTo === realFrom || newTo === realTo);
+          overrides.set(connIdx, [realFrom, newTo]);
+        }
+
+        setLineOverrides(overrides);
+
+        const holdDuration = 400 + Math.random() * 400;
+        const clearTimer = setTimeout(() => {
+          setLineOverrides(new Map());
+        }, holdDuration);
+
+        const nextTimer = setTimeout(() => {
+          scheduleRewire();
+        }, holdDuration + 200);
+
+        return () => {
+          clearTimeout(clearTimer);
+          clearTimeout(nextTimer);
+        };
+      }, delay);
+    }
+
+    const initialTimer = scheduleRewire();
+    return () => clearTimeout(initialTimer);
   }, []);
 
   return (
@@ -567,22 +871,50 @@ export default function Projects() {
           [CLICK NODE TO INSPECT]
         </div>
 
-        {/* Internal ref capture via callback ref on the section root */}
+        {/* Filter buttons — bottom-center */}
         <div
-          ref={(el) => {
-            if (el) {
-              // Walk up to the <section> element that SectionWrapper renders
-              sectionRef.current = el.closest("section") as HTMLElement | null;
-            }
+          style={{
+            position: "absolute",
+            bottom: "3rem",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            gap: "0.75rem",
+            zIndex: 2,
+            fontFamily: "monospace",
           }}
-          style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
-          aria-hidden="true"
-        />
+        >
+          {FILTER_OPTIONS.map(({ label, value }) => (
+            <button
+              key={value}
+              onClick={() => setActiveFilter(value)}
+              style={{
+                fontSize: "10px",
+                letterSpacing: "0.15em",
+                padding: "0.2rem 0.6rem",
+                border:
+                  activeFilter === value
+                    ? "1px solid rgba(160,216,216,0.8)"
+                    : "1px solid rgba(255,255,255,0.25)",
+                color:
+                  activeFilter === value ? "#a0d8d8" : "rgba(255,255,255,0.5)",
+                background:
+                  activeFilter === value
+                    ? "rgba(160,216,216,0.08)"
+                    : "transparent",
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
-        {/* SVG connector layer — sits behind cards */}
-        <ConnectorSVG />
+        {/* SVG connector layer — sits behind cards (zIndex 1), above canvas (zIndex -2) */}
+        <ConnectorSVG lineOverrides={lineOverrides} />
 
-        {/* Floating glitch labels */}
+        {/* Floating glitch labels — positioned near mesh connection midpoints */}
         {GLITCH_LABELS.map((label, i) => (
           <span
             key={i}
@@ -606,7 +938,7 @@ export default function Projects() {
           </span>
         ))}
 
-        {/* Project node cards */}
+        {/* Real project node cards */}
         {PROJECTS.map((project, index) => (
           <ProjectNode
             key={project.id}
@@ -614,9 +946,27 @@ export default function Projects() {
             position={CARD_POSITIONS[index] ?? [10 + index * 20, 10]}
             index={index}
             isSelected={selectedProject?.id === project.id}
+            isFiltered={
+              activeFilter !== "all" && project.category !== activeFilter
+            }
             onSelect={handleSelect}
+            scrambleTrigger={scrambleTrigger}
           />
         ))}
+
+        {/* Empty placeholder slots (indices 4-7) */}
+        {CARD_POSITIONS.slice(4).map((_, i) => {
+          const slotIndex = i + 4;
+          return (
+            <EmptyNode
+              key={`empty-${slotIndex}`}
+              index={slotIndex}
+            />
+          );
+        })}
+
+        {/* Center title node */}
+        <CenterTitleNode scrambleTrigger={scrambleTrigger} />
       </SectionWrapper>
 
       {/* Detail modal — centered overlay */}
