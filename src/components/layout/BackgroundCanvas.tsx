@@ -129,7 +129,7 @@ export default function BackgroundCanvas() {
           if (particlesDimmed) {
             p.fill(210, 210, 230, 55);
           } else {
-            p.fill(240, 240, 255);
+            p.fill(55, 55, 55);
           }
           p.ellipse(this.loc.x, this.loc.y, (this.loc as p5.Vector & { z: number }).z);
         }
