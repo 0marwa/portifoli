@@ -254,9 +254,11 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
   const [revealed, setRevealed] = useState(false);
   useEffect(() => {
     if (!project) return;
-    setRevealed(false);
     const t = setTimeout(() => setRevealed(true), 2500);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      setRevealed(false);
+    };
   }, [project?.id]);
 
   // Close on Escape
@@ -328,7 +330,7 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
             >
               <div>
                 <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.5rem" }}>
-                  // PROJECT_DETAIL
+                  {'// PROJECT_DETAIL'}
                 </div>
                 <h2
                   style={{
