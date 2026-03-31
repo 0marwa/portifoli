@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import Navbar from "@/components/layout/Navbar";
-import CustomCursor from "@/components/ui/CustomCursor";
 
 const BackgroundCanvas = dynamic(
   () => import("@/components/layout/BackgroundCanvas"),
@@ -42,7 +41,6 @@ export default function PageShell({
         aria-hidden="true"
       />
 
-      <CustomCursor />
       <Navbar />
       <ScrollToTop />
 
