@@ -9,17 +9,17 @@ const BUTTERFLY = `\
  ,,,\`            \`           \`,,,
 \`YES8888bo.       :     .od8888YES\`
  \`88SI08DO88b.   :   :   .d888SI8DO88\`
-  8LOVEY\` Y8b.  \`   \`  .d8Y  \`YLOVES
+  8LOVEY' Y8b.  \`   \`  .d8Y  \`YLOVES
  jTHEE! .db. Yb.\`   \`.dY .db. 8THEE!
   \`888 Y88Y  \`b ( ) d\`  Y88Y 888\`
    8MYb \`\`  ,\`       \`,  \`\` dMY8
-   j8prECIOUSgf\`\` \`:\` \`"?g8prECIOUSk
-    \`Y\` .8\`  d\`  \`b  .8. \`Y\`
+   j8prECIOUSgf'' ':' \`"?g8prECIOUSk
+    \`Y' .8\`  d\`  \`b  .8. \`Y\`
       .8\` db d\`; ;b db \`8.
      d88  \`\` 8 ; 8  \`\` 88b
      d881b .g8 \`,\` 8g. dI86b
-    :888LOVE8Y\`    \`Y88LOVE888:
-     \`! THEE888\`    \`888THEE !\`
+    :888LOVE8Y'    \`Y88LOVE888:
+     '! THEE888'    \`888THEE !\`
        \`8Y \`Y      Y\` Y8\`
              Y          Y`;
 

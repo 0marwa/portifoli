@@ -80,15 +80,10 @@
   html {
     background: #0d0d0d;
     color: #f0ebe0;
-    cursor: none;
   }
   body {
     background: transparent;
     color: #f0ebe0;
-    cursor: none;
-  }
-  * {
-    cursor: none !important;
   }
 }
 
