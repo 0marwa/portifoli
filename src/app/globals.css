@@ -48,6 +48,17 @@
   to   { transform: translateX(0); }
 }
 
+@keyframes stamp-in {
+  0%   { opacity: 0; transform: rotate(-1deg) scale(1.15); }
+  60%  { opacity: 1; transform: rotate(-1deg) scale(0.97); }
+  100% { opacity: 1; transform: rotate(-1deg) scale(1);    }
+}
+
+@keyframes scrapbook-float {
+  0%, 100% { transform: translate(-50%, -50%) rotate(-0.5deg); }
+  50%       { transform: translate(-50%, -50%) rotate(0.5deg);  }
+}
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-acidic: var(--font-acidic);
@@ -60,6 +71,8 @@
   --animate-node-pulse:        node-pulse        3s  ease-in-out infinite;
   --animate-float-label:       float-label       4s  ease-in-out infinite;
   --animate-panel-slide-in:    panel-slide-in    0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-stamp-in:          stamp-in          0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-scrapbook-float:   scrapbook-float   6s  ease-in-out infinite;
 }
 
 /* ─── Base ────────────────────────────────────────────────────────────────── */
