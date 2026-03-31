@@ -30,6 +30,9 @@ export interface ArtPiece {
   rotation?: number; // degrees, for scrapbook tilt effect
   width?: number;
   height?: number;
+  top?: number;   // % of page height, center-point of piece
+  left?: number;  // % of page width, center-point of piece
+  label?: string; // optional caption shown below the piece
 }
 
 // ─── Photo album ──────────────────────────────────────────────────────────────
