@@ -63,9 +63,9 @@ const DRAWINGS: ArtPiece3D[] = [
   { id: "d12", src: "/images/art/drawing12.png",  alt: "Drawing 12", x:  -20, y:  180, z: -1700, rotation:  1, width: 310, height: 210 },
 ];
 
-const CAMERA_SPEED = 0.8;
+const CAMERA_SPEED = 1.0;
 const MAX_CAMERA_Z = 1800;
-const LERP_FACTOR  = 0.12;
+const LERP_FACTOR  = 0.20;
 
 // ─── CornerBrackets ───────────────────────────────────────────────────────────
 
@@ -232,22 +232,50 @@ function ArtLightbox({
 // ─── ArtGallery ───────────────────────────────────────────────────────────────
 
 export default function ArtGallery() {
-  const [cameraZ, setCameraZ] = useState(0);
+  // Only UI-triggering state — lightbox open/close
   const [openPiece, setOpenPiece] = useState<{ piece: ArtPiece3D; index: number } | null>(null);
 
-  const cameraZTargetRef = useRef(0);
+  // Camera lives entirely in refs — never touches React state
+  const cameraZRef       = useRef(0);   // current lerped position
+  const cameraZTargetRef = useRef(0);   // target set by wheel events
   const rafRef           = useRef<number | null>(null);
   const isActiveRef      = useRef(false);
   const sectionRef       = useRef<HTMLElement | null>(null);
 
-  // ── rAF lerp loop ────────────────────────────────────────────────────────────
+  // DOM refs for per-frame direct writes (bypasses React reconciler)
+  const pieceRefs     = useRef<(HTMLDivElement | null)[]>([]);
+  const depthFillRef  = useRef<HTMLDivElement | null>(null);
+  const scrollHintRef = useRef<HTMLDivElement | null>(null);
+
+  // ── rAF lerp loop — writes directly to DOM, zero React re-renders ────────────
   useEffect(() => {
     const tick = () => {
-      setCameraZ((prev) => {
-        const target = cameraZTargetRef.current;
-        const next   = prev + (target - prev) * LERP_FACTOR;
-        return Math.abs(next - target) < 0.1 ? target : next;
+      const target = cameraZTargetRef.current;
+      const prev   = cameraZRef.current;
+      const next   = Math.abs(target - prev) < 0.05 ? target : prev + (target - prev) * LERP_FACTOR;
+      cameraZRef.current = next;
+
+      // Update each piece transform + visibility directly
+      DRAWINGS.forEach((piece, i) => {
+        const el = pieceRefs.current[i];
+        if (!el) return;
+        const effectiveZ = piece.z + next;
+        const isPast     = effectiveZ > 300;
+        el.style.transform     = `translate3d(calc(-50% + ${piece.x}px), calc(-50% + ${piece.y}px), ${effectiveZ}px) rotate(${piece.rotation}deg)`;
+        el.style.opacity       = isPast ? "0" : "1";
+        el.style.pointerEvents = isPast ? "none" : "auto";
       });
+
+      // Update depth indicator fill
+      if (depthFillRef.current) {
+        depthFillRef.current.style.height = `${(next / MAX_CAMERA_Z) * 100}%`;
+      }
+
+      // Hide scroll hint once camera starts moving
+      if (scrollHintRef.current) {
+        scrollHintRef.current.style.display = next >= 50 ? "none" : "";
+      }
+
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
@@ -281,21 +309,29 @@ export default function ArtGallery() {
     const onWheel = (e: WheelEvent) => {
       if (!isActiveRef.current) return;
 
-      const target          = cameraZTargetRef.current;
+      const target           = cameraZTargetRef.current;
       const scrollingForward = e.deltaY > 0;
       const scrollingBack    = e.deltaY < 0;
       const atStart          = target <= 0;
       const atEnd            = target >= MAX_CAMERA_Z;
 
       // At boundaries: let page scroll through
-      if (atStart && scrollingBack)   return;
+      if (atStart && scrollingBack)    return;
       if (atEnd   && scrollingForward) return;
 
-      // Otherwise consume
       e.preventDefault();
+
+      // Normalise delta — trackpad sends many small events, mouse wheel sends
+      // large discrete steps. Scale down large steps so both feel similar.
+      let delta = e.deltaY;
+      if (e.deltaMode === 1) delta *= 24;   // Firefox line mode
+      if (e.deltaMode === 2) delta *= window.innerHeight; // page mode
+      const isMouse = Math.abs(delta) > 50;
+      const speed   = isMouse ? CAMERA_SPEED * 0.6 : CAMERA_SPEED;
+
       cameraZTargetRef.current = Math.max(
         0,
-        Math.min(MAX_CAMERA_Z, target + e.deltaY * CAMERA_SPEED),
+        Math.min(MAX_CAMERA_Z, target + delta * speed),
       );
     };
 
@@ -451,35 +487,34 @@ export default function ArtGallery() {
             }}
           >
             <div
+              ref={depthFillRef}
               style={{
                 position:   "absolute",
                 top:        0,
                 left:       0,
                 right:      0,
-                height:     `${(cameraZ / MAX_CAMERA_Z) * 100}%`,
+                height:     "0%",
                 background: "linear-gradient(to bottom, #f0b0c4, transparent)",
-                transition: "height 0.1s linear",
               }}
             />
           </div>
         </div>
 
-        {/* ── Scroll hint — visible until camera begins moving ────────────────── */}
-        {cameraZ < 50 && (
-          <div
-            className="pointer-events-none absolute bottom-8 left-1/2 z-20 -translate-x-1/2"
-            style={{
-              animation:     "pulse-hint 2s ease-in-out infinite",
-              fontFamily:    "monospace",
-              fontSize:      8,
-              color:         "#f0b0c4",
-              letterSpacing: "0.2em",
-              whiteSpace:    "nowrap",
-            }}
-          >
-            SCROLL TO EXPLORE ↓
-          </div>
-        )}
+        {/* ── Scroll hint — hidden via DOM ref once camera moves past 50 ─────── */}
+        <div
+          ref={scrollHintRef}
+          className="pointer-events-none absolute bottom-8 left-1/2 z-20 -translate-x-1/2"
+          style={{
+            animation:     "pulse-hint 2s ease-in-out infinite",
+            fontFamily:    "monospace",
+            fontSize:      8,
+            color:         "#f0b0c4",
+            letterSpacing: "0.2em",
+            whiteSpace:    "nowrap",
+          }}
+        >
+          SCROLL TO EXPLORE ↓
+        </div>
 
         {/* ── preserve-3d scene root ───────────────────────────────────────────── */}
         <div
@@ -490,23 +525,22 @@ export default function ArtGallery() {
           }}
         >
           {DRAWINGS.map((piece, i) => {
-            const effectiveZ = piece.z + cameraZ;
-            const isPast     = effectiveZ > 300;
-            const codeLabel  = `ART-${String(i + 1).padStart(4, "0")}`;
+            const codeLabel = `ART-${String(i + 1).padStart(4, "0")}`;
 
             return (
               <div
                 key={piece.id}
+                ref={(el) => { pieceRefs.current[i] = el; }}
                 data-repel
                 className="absolute cursor-pointer"
                 style={{
-                  top:           "50%",
-                  left:          "50%",
-                  transform:     `translate3d(calc(-50% + ${piece.x}px), calc(-50% + ${piece.y}px), ${effectiveZ}px) rotate(${piece.rotation}deg)`,
-                  opacity:       isPast ? 0 : 1,
-                  pointerEvents: isPast ? "none" : "auto",
-                  // Only transition opacity — transform changes every rAF frame
-                  transition:    "opacity 0.2s ease",
+                  top:        "50%",
+                  left:       "50%",
+                  // Initial position — rAF overwrites this on first tick
+                  transform:  `translate3d(calc(-50% + ${piece.x}px), calc(-50% + ${piece.y}px), ${piece.z}px) rotate(${piece.rotation}deg)`,
+                  opacity:    1,
+                  transition: "opacity 0.2s ease",
+                  willChange: "transform, opacity",
                 }}
                 onClick={() => setOpenPiece({ piece, index: i })}
               >
