@@ -315,11 +315,11 @@ export default function ArtGallery() {
       const atStart          = target <= 0;
       const atEnd            = target >= MAX_CAMERA_Z;
 
-      // At boundaries: let page scroll through (Lenis handles it)
+      // At boundaries: return early so the native window scroll handles passthrough
       if (atStart && scrollingBack)    return;
       if (atEnd   && scrollingForward) return;
 
-      // Stop Lenis from seeing this event — we own the scroll here
+      // Claim ownership of this event — prevent native scroll and stop bubbling
       e.stopPropagation();
       e.preventDefault();
 
@@ -337,9 +337,9 @@ export default function ArtGallery() {
       );
     };
 
-    // Capture phase so this fires before Lenis's bubble-phase listener.
-    // At boundaries we return early (no stopPropagation) so Lenis handles smooth page scroll.
-    // Mid-gallery we stopPropagation so Lenis never sees the event.
+    // Capture phase so this fires before any bubble-phase scroll listeners.
+    // At boundaries we return early (no stopPropagation) so native scroll handles passthrough.
+    // Mid-gallery we stopPropagation + preventDefault so the window never sees the event.
     window.addEventListener("wheel", onWheel, { passive: false, capture: true });
     return () => window.removeEventListener("wheel", onWheel, { capture: true });
   }, []);
