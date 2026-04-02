@@ -3,6 +3,7 @@
 import { useState } from "react";
 import SectionWrapper from "@/components/ui/SectionWrapper";
 import Image from "next/image";
+import { useGlitchReveal } from "@/hooks/useGlitchReveal";
 import type { PhotoAlbum, Photo } from "@/types";
 
 /**
@@ -131,16 +132,34 @@ function AlbumIcon({
 // ── Section ────────────────────────────────────────────────────────────────────
 export default function PhotoGallery() {
   const [openAlbum, setOpenAlbum] = useState<PhotoAlbum | null>(null);
+  const { sectionRef: glitchRef } = useGlitchReveal();
 
   return (
     <SectionWrapper id="photos">
+      {/* Ref anchor — walks up to <section> for the glitch reveal observer */}
+      <div
+        ref={(el) => {
+          if (el) glitchRef.current = el.closest("section") as HTMLElement | null;
+        }}
+        style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+        aria-hidden="true"
+      />
+
       <div className="flex min-h-screen w-full flex-col items-center justify-center gap-12 px-8 py-24">
-        <h2 className="text-2xl uppercase tracking-widest opacity-60">
+        <h2
+          data-glitch-reveal=""
+          data-glitch-delay="0"
+          className="text-2xl uppercase tracking-widest opacity-60 glitch-hidden"
+        >
           Photos
         </h2>
 
         {/* Albums grid */}
-        <div className="flex flex-wrap items-center justify-center gap-10">
+        <div
+          data-glitch-reveal=""
+          data-glitch-delay="200"
+          className="flex flex-wrap items-center justify-center gap-10 glitch-hidden"
+        >
           {ALBUMS.map((album) => (
             <AlbumIcon
               key={album.id}
