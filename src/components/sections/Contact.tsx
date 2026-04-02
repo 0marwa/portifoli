@@ -1,6 +1,7 @@
 "use client";
 
 import SectionWrapper from "@/components/ui/SectionWrapper";
+import { useGlitchReveal } from "@/hooks/useGlitchReveal";
 
 // ─── ASCII butterfly ───────────────────────────────────────────────────────────
 // Two wings formed by words: YES, LOVE, THEE, PRECIOUS
@@ -87,10 +88,28 @@ function GlitchButterfly() {
 }
 
 export default function Contact() {
+  const { sectionRef } = useGlitchReveal();
+
   return (
     <SectionWrapper id="contact" fullHeight={false}>
+      {/* Ref anchor — walks up to <section> for IntersectionObserver */}
+      <div
+        ref={(el) => {
+          if (el) sectionRef.current = el.closest("section") as HTMLElement | null;
+        }}
+        aria-hidden="true"
+        style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+      />
+
       <div className="flex min-h-screen w-full items-center justify-center px-8 py-24">
-        <GlitchButterfly />
+        {/* Butterfly wrapper — glitch reveals into view, then the internal animation loops */}
+        <div
+          data-glitch-reveal=""
+          data-glitch-delay="0"
+          className="glitch-hidden"
+        >
+          <GlitchButterfly />
+        </div>
       </div>
     </SectionWrapper>
   );
