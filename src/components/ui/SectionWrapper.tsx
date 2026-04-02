@@ -31,6 +31,7 @@ export default function SectionWrapper({
       id={id}
       data-section-id={id}
       className={`relative w-full ${fullHeight ? "min-h-screen" : ""} ${className}`}
+      style={{ scrollSnapAlign: "start" }}
     >
       {children}
     </section>

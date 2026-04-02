@@ -44,6 +44,16 @@ export default function PageShell({
       <Navbar />
       <ScrollToTop />
 
+      {/*
+        scroll-snap-type was tested here but reverted. Reason:
+        - <main> has overflow:visible and clientHeight === scrollHeight, so it is
+          not the scroll container — the snap spec has no effect here.
+        - The true scroller is <html>. Moving snap to <html> would require making
+          <main> the overflow-scroll container (height:100vh, overflow-y:scroll),
+          which breaks: ArtGallery's IntersectionObserver (viewport-based),
+          BackgroundCanvas fixed positioning, and Contact's natural-height layout.
+        - The refactor is too invasive vs. the cosmetic benefit of section snapping.
+      */}
       <main className="relative z-0">
         {children}
       </main>
