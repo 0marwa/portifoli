@@ -27,7 +27,7 @@ export default function PageShell({
       });
 
       // Expose for ArtGallery to pause/resume during wheel hijacking
-      (window as Record<string, unknown>).__lenis = lenis;
+      (window as unknown as Record<string, unknown>).__lenis = lenis;
 
       function raf(time: number) {
         lenis.raf(time);
@@ -38,9 +38,9 @@ export default function PageShell({
 
     return () => {
       cancelAnimationFrame(rafId);
-      const lenis = (window as Record<string, unknown>).__lenis as { destroy?: () => void } | undefined;
+      const lenis = (window as unknown as Record<string, unknown>).__lenis as { destroy?: () => void } | undefined;
       lenis?.destroy?.();
-      delete (window as Record<string, unknown>).__lenis;
+      delete (window as unknown as Record<string, unknown>).__lenis;
     };
   }, []);
 
