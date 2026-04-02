@@ -292,10 +292,13 @@ export default function ArtGallery() {
     const observer = new IntersectionObserver(
       ([entry]) => {
         isActiveRef.current = entry.intersectionRatio >= 0.5;
+        const lenis = (window as Record<string, unknown>).__lenis as { stop?: () => void; start?: () => void } | undefined;
         if (entry.isIntersecting) {
           document.documentElement.dataset.dimParticles = "1";
+          lenis?.stop?.();
         } else {
           delete document.documentElement.dataset.dimParticles;
+          lenis?.start?.();
         }
       },
       { threshold: [0.4, 0.5] },
