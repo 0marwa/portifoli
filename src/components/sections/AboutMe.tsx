@@ -88,13 +88,12 @@ export default function AboutMe() {
               zIndex: 0,
             }}
           />
-          {/* filter: invert(1) is baked into the glitch-reveal-image keyframe */}
           <Image
             src="/images/avatar.png"
             alt="Hand-drawn avatar of Marwa"
             fill
             className="object-contain"
-            style={{ zIndex: 1 }}
+            style={{ filter: "invert(1)", zIndex: 1 }}
           />
         </div>
 

@@ -318,10 +318,12 @@ export default function ArtGallery() {
       const atStart          = target <= 0;
       const atEnd            = target >= MAX_CAMERA_Z;
 
-      // At boundaries: let page scroll through
+      // At boundaries: let page scroll through (Lenis handles it)
       if (atStart && scrollingBack)    return;
       if (atEnd   && scrollingForward) return;
 
+      // Stop Lenis from seeing this event — we own the scroll here
+      e.stopPropagation();
       e.preventDefault();
 
       // Normalise delta — trackpad sends many small events, mouse wheel sends
@@ -338,8 +340,11 @@ export default function ArtGallery() {
       );
     };
 
-    window.addEventListener("wheel", onWheel, { passive: false });
-    return () => window.removeEventListener("wheel", onWheel);
+    // Capture phase so this fires before Lenis's bubble-phase listener.
+    // At boundaries we return early (no stopPropagation) so Lenis handles smooth page scroll.
+    // Mid-gallery we stopPropagation so Lenis never sees the event.
+    window.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    return () => window.removeEventListener("wheel", onWheel, { capture: true });
   }, []);
 
   return (
