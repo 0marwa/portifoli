@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 
 const BackgroundCanvas = dynamic(
@@ -16,6 +17,33 @@ export default function PageShell({
 }: {
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    let rafId: number;
+
+    import("lenis").then(({ default: Lenis }) => {
+      const lenis = new Lenis({
+        duration: 1.2,
+        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      });
+
+      // Expose for ArtGallery to pause/resume during wheel hijacking
+      (window as Record<string, unknown>).__lenis = lenis;
+
+      function raf(time: number) {
+        lenis.raf(time);
+        rafId = requestAnimationFrame(raf);
+      }
+      rafId = requestAnimationFrame(raf);
+    });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      const lenis = (window as Record<string, unknown>).__lenis as { destroy?: () => void } | undefined;
+      lenis?.destroy?.();
+      delete (window as Record<string, unknown>).__lenis;
+    };
+  }, []);
+
   const activeSection = useSectionBackground();
   const bgImage = activeSection ? SECTION_BG_IMAGE[activeSection] : "";
   const hasImage = bgImage.length > 0;
