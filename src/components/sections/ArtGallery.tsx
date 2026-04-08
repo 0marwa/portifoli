@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import SectionWrapper from "@/components/ui/SectionWrapper";
+import { useGlitchReveal } from "@/hooks/useGlitchReveal";
 
 /**
  * ─── Art Gallery ──────────────────────────────────────────────────────────────
@@ -242,6 +243,8 @@ export default function ArtGallery() {
   const isActiveRef      = useRef(false);
   const sectionRef       = useRef<HTMLElement | null>(null);
 
+  const { sectionRef: glitchRef } = useGlitchReveal();
+
   // DOM refs for per-frame direct writes (bypasses React reconciler)
   const pieceRefs     = useRef<(HTMLDivElement | null)[]>([]);
   const depthFillRef  = useRef<HTMLDivElement | null>(null);
@@ -315,10 +318,12 @@ export default function ArtGallery() {
       const atStart          = target <= 0;
       const atEnd            = target >= MAX_CAMERA_Z;
 
-      // At boundaries: let page scroll through
+      // At boundaries: return early so the native window scroll handles passthrough
       if (atStart && scrollingBack)    return;
       if (atEnd   && scrollingForward) return;
 
+      // Claim ownership of this event — prevent native scroll and stop bubbling
+      e.stopPropagation();
       e.preventDefault();
 
       // Normalise delta — trackpad sends many small events, mouse wheel sends
@@ -335,8 +340,11 @@ export default function ArtGallery() {
       );
     };
 
-    window.addEventListener("wheel", onWheel, { passive: false });
-    return () => window.removeEventListener("wheel", onWheel);
+    // Capture phase so this fires before any bubble-phase scroll listeners.
+    // At boundaries we return early (no stopPropagation) so native scroll handles passthrough.
+    // Mid-gallery we stopPropagation + preventDefault so the window never sees the event.
+    window.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    return () => window.removeEventListener("wheel", onWheel, { capture: true });
   }, []);
 
   return (
@@ -352,7 +360,11 @@ export default function ArtGallery() {
       {/* Invisible ref anchor — walks up to <section> for IntersectionObserver */}
       <div
         ref={(el) => {
-          if (el) sectionRef.current = el.closest("section") as HTMLElement | null;
+          if (el) {
+            const section = el.closest("section") as HTMLElement | null;
+            sectionRef.current = section;
+            glitchRef.current  = section;
+          }
         }}
         style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
         aria-hidden="true"
@@ -370,8 +382,10 @@ export default function ArtGallery() {
       >
         {/* ── Section-level decorative chrome ─────────────────────────────────── */}
         <div
+          data-glitch-reveal=""
+          data-glitch-delay="200"
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-10 select-none overflow-hidden"
+          className="pointer-events-none absolute inset-0 z-10 select-none overflow-hidden glitch-hidden"
         >
           <CornerBrackets color="rgba(240,176,196,0.25)" size={24} />
 
@@ -421,8 +435,9 @@ export default function ArtGallery() {
 
         {/* ── Section title ────────────────────────────────────────────────────── */}
         <div
-          className="pointer-events-none absolute top-8 left-1/2 z-20 -translate-x-1/2 text-center"
-          style={{ animation: "stamp-in 0.5s cubic-bezier(0.16,1,0.3,1) forwards" }}
+          data-glitch-reveal=""
+          data-glitch-delay="0"
+          className="pointer-events-none absolute top-8 left-1/2 z-20 -translate-x-1/2 text-center glitch-hidden"
         >
           <p
             className="mb-1 text-[9px] uppercase tracking-widest"
