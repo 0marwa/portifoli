@@ -111,9 +111,40 @@ interface ProjectNodeProps {
 function ProjectNode({ project, position, index, isSelected, onSelect, glitchDelay = 0 }: ProjectNodeProps) {
   const [top, left] = position;
   const preview = GLITCH_PREVIEWS[index] ?? ["▓▓ ???", "// unknown"];
+  // Track whether the glitch-reveal hook has already fired on this node.
+  // Once revealed, we must NOT re-add glitch-hidden on re-renders (e.g. when
+  // isSelected changes), because the hook only runs once and won't remove it again.
+  const revealedRef = useRef(false);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+
+  // Watch for the glitch-reveal class being removed by the hook (i.e. the moment
+  // of reveal) and record it so subsequent re-renders keep the node visible.
+  useEffect(() => {
+    const el = buttonRef.current;
+    if (!el || revealedRef.current) return;
+
+    const observer = new MutationObserver(() => {
+      if (!el.classList.contains("glitch-hidden")) {
+        revealedRef.current = true;
+        observer.disconnect();
+      }
+    });
+
+    observer.observe(el, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  // After each render, if the node was already revealed but React re-added
+  // glitch-hidden (because it's in the static className string), remove it again.
+  useEffect(() => {
+    if (revealedRef.current && buttonRef.current) {
+      buttonRef.current.classList.remove("glitch-hidden");
+    }
+  });
 
   return (
     <button
+      ref={buttonRef}
       data-repel
       data-glitch-reveal=""
       data-glitch-delay={String(glitchDelay)}
