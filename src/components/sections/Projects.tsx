@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import SectionWrapper from "@/components/ui/SectionWrapper";
+import { useGlitchReveal } from "@/hooks/useGlitchReveal";
 import type { Project } from "@/types";
 
 // ─── Project data ──────────────────────────────────────────────────────────────
@@ -104,15 +105,49 @@ interface ProjectNodeProps {
   index: number;
   isSelected: boolean;
   onSelect: (project: Project) => void;
+  glitchDelay?: number;
 }
 
-function ProjectNode({ project, position, index, isSelected, onSelect }: ProjectNodeProps) {
+function ProjectNode({ project, position, index, isSelected, onSelect, glitchDelay = 0 }: ProjectNodeProps) {
   const [top, left] = position;
   const preview = GLITCH_PREVIEWS[index] ?? ["▓▓ ???", "// unknown"];
+  // Track whether the glitch-reveal hook has already fired on this node.
+  // Once revealed, we must NOT re-add glitch-hidden on re-renders (e.g. when
+  // isSelected changes), because the hook only runs once and won't remove it again.
+  const revealedRef = useRef(false);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+
+  // Watch for the glitch-reveal class being removed by the hook (i.e. the moment
+  // of reveal) and record it so subsequent re-renders keep the node visible.
+  useEffect(() => {
+    const el = buttonRef.current;
+    if (!el || revealedRef.current) return;
+
+    const observer = new MutationObserver(() => {
+      if (!el.classList.contains("glitch-hidden")) {
+        revealedRef.current = true;
+        observer.disconnect();
+      }
+    });
+
+    observer.observe(el, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  // After each render, if the node was already revealed but React re-added
+  // glitch-hidden (because it's in the static className string), remove it again.
+  useEffect(() => {
+    if (revealedRef.current && buttonRef.current) {
+      buttonRef.current.classList.remove("glitch-hidden");
+    }
+  });
 
   return (
     <button
+      ref={buttonRef}
       data-repel
+      data-glitch-reveal=""
+      data-glitch-delay={String(glitchDelay)}
       onClick={() => onSelect(project)}
       aria-label={`Open project: ${project.title}`}
       style={{
@@ -124,7 +159,7 @@ function ProjectNode({ project, position, index, isSelected, onSelect }: Project
         animationDelay: `${index * 0.3}s`,
       }}
       className={[
-        "group w-[220px] cursor-pointer border px-4 py-3 text-left transition-all duration-200",
+        "group w-[220px] cursor-pointer border px-4 py-3 text-left transition-all duration-200 glitch-hidden",
         "focus:outline-none focus-visible:ring-1 focus-visible:ring-current",
         isSelected
           ? "border-[#a0d8d8] bg-black/70 text-[#a0d8d8]"
@@ -503,6 +538,7 @@ function DetailPanel({ project, onClose }: DetailPanelProps) {
 export default function Projects() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const sectionRef = useRef<HTMLElement | null>(null);
+  const { sectionRef: glitchRef } = useGlitchReveal();
 
   // ── Particle dimming via IntersectionObserver ────────────────────────────
   useEffect(() => {
@@ -537,6 +573,8 @@ export default function Projects() {
       <SectionWrapper id="projects">
         {/* Section label — top-left corner */}
         <div
+          data-glitch-reveal=""
+          data-glitch-delay="0"
           style={{
             position: "absolute",
             top: "1.5rem",
@@ -548,6 +586,7 @@ export default function Projects() {
             zIndex: 2,
             pointerEvents: "none",
           }}
+          className="glitch-hidden"
         >
           SYS::PROJECT_MAP / {PROJECTS.length} nodes
         </div>
@@ -574,7 +613,9 @@ export default function Projects() {
           ref={(el) => {
             if (el) {
               // Walk up to the <section> element that SectionWrapper renders
-              sectionRef.current = el.closest("section") as HTMLElement | null;
+              const section = el.closest("section") as HTMLElement | null;
+              sectionRef.current = section;
+              glitchRef.current  = section;
             }
           }}
           style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
@@ -582,7 +623,15 @@ export default function Projects() {
         />
 
         {/* SVG connector layer — sits behind cards */}
-        <ConnectorSVG />
+        <div
+          data-glitch-reveal=""
+          data-glitch-delay="150"
+          className="glitch-hidden"
+          style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0 }}
+          aria-hidden="true"
+        >
+          <ConnectorSVG />
+        </div>
 
         {/* Floating glitch labels */}
         {GLITCH_LABELS.map((label, i) => (
@@ -617,6 +666,7 @@ export default function Projects() {
             index={index}
             isSelected={selectedProject?.id === project.id}
             onSelect={handleSelect}
+            glitchDelay={300 + index * 100}
           />
         ))}
       </SectionWrapper>
