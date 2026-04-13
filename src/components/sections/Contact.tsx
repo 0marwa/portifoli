@@ -148,16 +148,14 @@ export default function Contact() {
               <a
                 key={href}
                 href={href}
+                aria-label={label}
                 target={href.startsWith("mailto") ? undefined : "_blank"}
                 rel={href.startsWith("mailto") ? undefined : "noopener noreferrer"}
-                className="group flex items-center gap-2.5 text-xs tracking-wide transition-opacity duration-200 opacity-60 hover:opacity-100"
-                style={{ color: "#f0ebe0", fontFamily: "monospace" }}
+                className="group flex items-center transition-opacity duration-200 opacity-60 hover:opacity-100"
+                style={{ color: "#f0ebe0" }}
               >
                 <span className="transition-colors duration-200 group-hover:text-[#f0b0c4]">
                   {icon}
-                </span>
-                <span className="group-hover:underline underline-offset-2">
-                  {label}
                 </span>
               </a>
             ))}
