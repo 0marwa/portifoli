@@ -163,16 +163,6 @@ export default function Contact() {
             ))}
           </nav>
 
-          {/* Divider */}
-          <div
-            aria-hidden="true"
-            style={{
-              width: "1px",
-              alignSelf: "stretch",
-              background: "linear-gradient(to bottom, transparent, #f0ebe030 20%, #f0ebe030 80%, transparent)",
-            }}
-          />
-
           {/* Butterfly */}
           <GlitchButterfly />
         </div>
