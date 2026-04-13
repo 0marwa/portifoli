@@ -25,6 +25,12 @@
 *.pem
 Thumbs.db
 
+# playwright MCP
+.playwright-mcp/
+
+# screenshot scratchpad
+step2-*.png
+
 # claude code
 .claude/
 CLAUDE.md
