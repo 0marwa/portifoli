@@ -1,7 +1,6 @@
 import AboutMe from "@/components/sections/AboutMe";
 import Projects from "@/components/sections/Projects";
-import ArtGallery from "@/components/sections/ArtGallery";
-import PhotoGallery from "@/components/sections/PhotoGallery";
+import CTFWriteups from "@/components/sections/CTFWriteups";
 import Contact from "@/components/sections/Contact";
 
 export default function Home() {
@@ -9,8 +8,7 @@ export default function Home() {
     <>
       <AboutMe />
       <Projects />
-      <ArtGallery />
-      <PhotoGallery />
+      <CTFWriteups />
       <Contact />
     </>
   );
