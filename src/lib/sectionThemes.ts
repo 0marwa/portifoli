@@ -19,5 +19,6 @@ export const SECTION_BG_IMAGE: Record<SectionId, string> = {
   projects: "/images/backgrounds/projects.jpg",
   art:      "/images/backgrounds/art.jpg",
   photos:   "/images/backgrounds/photos.jpg",
+  ctf:      "", // canvas only — no image overlay
   contact:  "", // canvas only — no image overlay
 };
