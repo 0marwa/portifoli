@@ -33,8 +33,8 @@ export default function Navbar() {
           key={link.href}
           href={`#${link.href}`}
           onClick={(e) => handleClick(e, link.href)}
-          /* ↓ swap this className for your grungy handwritten font class */
-          className="font-sans text-sm uppercase tracking-widest text-current opacity-80 transition-opacity hover:opacity-100"
+          style={{ fontFamily: "var(--font-acidic), sans-serif" }}
+          className="text-sm uppercase tracking-widest text-current opacity-80 transition-opacity hover:opacity-100"
         >
           {link.label}
         </a>
