@@ -30,7 +30,7 @@ const PROJECTS: Project[] = [
       "Android app built in a 14-week SCRUM team project at EPFL (CS311). Covered ideation → Figma prototyping → Kotlin development → user testing → final demo. 2nd place at Battle of the Apps 2023.",
     tags: ["Kotlin", "Figma", "SCRUM"],
     image: "/images/projects/feedme.png",
-    link: "https://github.com/",
+    link: "https://github.com/feedme-swent-epfl/feedme-android",
   },
   {
     id: "scala-webapp",
@@ -152,8 +152,8 @@ function ProjectNode({ project, position, index, isSelected, onSelect, glitchDel
       aria-label={`Open project: ${project.title}`}
       style={{
         position: "absolute",
-        top: `${top}%`,
-        left: `${left}%`,
+        top: `clamp(2%, ${top}%, 80%)`,
+        left: `clamp(2%, ${left}%, 75%)`,
         fontFamily: "monospace",
         animation: `node-pulse ${2.5 + index * 0.4}s ease-in-out infinite`,
         animationDelay: `${index * 0.3}s`,
