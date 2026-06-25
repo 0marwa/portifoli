@@ -24,6 +24,8 @@ import { useGlitchReveal } from "@/hooks/useGlitchReveal";
  *   3. Add label strings to each piece for captions.
  */
 
+const CATALOG_YEAR = new Date().getFullYear();
+
 // ─── Local types ──────────────────────────────────────────────────────────────
 
 interface ArtPiece3D {
@@ -182,7 +184,7 @@ function ArtLightbox({
               className="text-[9px] uppercase tracking-widest"
               style={{ fontFamily: "monospace", color: "#ffffff", opacity: 0.25 }}
             >
-              CATALOG // 2025
+              {`CATALOG // ${CATALOG_YEAR}`}
             </span>
           </div>
 
@@ -443,7 +445,7 @@ export default function ArtGallery() {
             className="mb-1 text-[9px] uppercase tracking-widest"
             style={{ fontFamily: "monospace", color: "#f0b0c4", opacity: 0.6 }}
           >
-            CATALOG // 2025
+            {`CATALOG // ${CATALOG_YEAR}`}
           </p>
           <div className="flex items-center gap-3">
             <div aria-hidden="true" style={{ width: 32, height: 1, background: "rgba(255,255,255,0.2)" }} />
