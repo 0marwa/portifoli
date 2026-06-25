@@ -1,5 +1,5 @@
 // ─── Section IDs ──────────────────────────────────────────────────────────────
-export type SectionId = "about" | "projects" | "art" | "photos" | "contact";
+export type SectionId = "about" | "projects" | "art" | "photos" | "ctf" | "contact";
 
 // ─── Navbar link ──────────────────────────────────────────────────────────────
 export interface NavLink {
@@ -49,3 +49,5 @@ export interface Photo {
   alt: string;
   caption?: string;
 }
+
+export type { CTFWriteup, CTFDifficulty, CTFCategory } from "./ctf";
