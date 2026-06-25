@@ -152,8 +152,8 @@ function ProjectNode({ project, position, index, isSelected, onSelect, glitchDel
       aria-label={`Open project: ${project.title}`}
       style={{
         position: "absolute",
-        top: `${top}%`,
-        left: `${left}%`,
+        top: `clamp(2%, ${top}%, 80%)`,
+        left: `clamp(2%, ${left}%, 75%)`,
         fontFamily: "monospace",
         animation: `node-pulse ${2.5 + index * 0.4}s ease-in-out infinite`,
         animationDelay: `${index * 0.3}s`,
