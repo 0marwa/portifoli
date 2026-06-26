@@ -28,7 +28,7 @@ function InfoBlurb({ id, label, value, position, rotation = 0, glitchDelay = 0 }
       data-blurb-id={id}
       data-glitch-reveal=""
       data-glitch-delay={String(glitchDelay)}
-      className={`absolute ${position} max-w-[140px] text-center glitch-hidden`}
+      className={`absolute ${position} max-w-[200px] text-center glitch-hidden`}
     >
       {/* Inner div: static rotation — isolated so it doesn't conflict with keyframe transforms */}
       <div style={{ transform: `rotate(${rotation}deg)` }}>
@@ -43,10 +43,10 @@ function InfoBlurb({ id, label, value, position, rotation = 0, glitchDelay = 0 }
             pointerEvents: "none",
           }}
         />
-        <p className="relative z-10 text-xs font-bold uppercase tracking-widest opacity-60">
+        <p className="relative z-10 text-sm font-bold uppercase tracking-widest opacity-60">
           {label}
         </p>
-        <p className="relative z-10 mt-1 text-base leading-snug font-acidic">
+        <p className="relative z-10 mt-1 text-xl leading-snug font-acidic">
           {value}
         </p>
       </div>
@@ -76,7 +76,7 @@ export default function AboutMe() {
           data-glitch-reveal=""
           data-glitch-delay="0"
           data-glitch-type="image"
-          className="relative z-10 h-64 w-64 shrink-0 glitch-hidden-img"
+          className="relative z-10 h-80 w-80 shrink-0 glitch-hidden-img"
         >
           <div
             aria-hidden="true"
