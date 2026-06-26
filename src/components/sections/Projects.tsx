@@ -101,11 +101,11 @@ interface Line { text: string; kind: LineKind }
 
 function color(k: LineKind): string {
   switch (k) {
-    case "out":    return "rgba(236,237,238,.86)";
-    case "dim":    return "rgba(236,237,238,.46)";
-    case "cmd":    return "#ececed";
+    case "out":    return "rgba(236,237,238,.95)";
+    case "dim":    return "rgba(236,237,238,.72)";
+    case "cmd":    return "#ffffff";
     case "accent": return ACCENT;
-    case "rule":   return "rgba(236,237,238,.26)";
+    case "rule":   return "rgba(236,237,238,.50)";
     case "err":    return "#e3795f";
   }
 }
@@ -346,45 +346,6 @@ export default function Projects() {
           background:    "transparent",
         }}
       >
-        {/* Noise grain */}
-        <div
-          aria-hidden="true"
-          style={{
-            position:        "absolute",
-            inset:           0,
-            pointerEvents:   "none",
-            zIndex:          1,
-            opacity:         0.055,
-            mixBlendMode:    "screen",
-            backgroundImage: `url("${NOISE_URI}")`,
-            animation:       "pe-flick 7s steps(4) infinite",
-          }}
-        />
-
-        {/* Scanlines */}
-        <div
-          aria-hidden="true"
-          style={{
-            position:      "absolute",
-            inset:         0,
-            pointerEvents: "none",
-            zIndex:        1,
-            opacity:       0.35,
-            background:    "repeating-linear-gradient(to bottom, rgba(255,255,255,.018) 0px, rgba(255,255,255,.018) 1px, transparent 1px, transparent 3px)",
-          }}
-        />
-
-        {/* Vignette */}
-        <div
-          aria-hidden="true"
-          style={{
-            position:      "absolute",
-            inset:         0,
-            pointerEvents: "none",
-            zIndex:        1,
-            background:    "radial-gradient(120% 120% at 50% 0%, transparent 55%, rgba(0,0,0,.4) 100%)",
-          }}
-        />
 
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <header
@@ -412,7 +373,7 @@ export default function Projects() {
           </h2>
 
           {/* Subtitle */}
-          <p style={{ fontFamily: "inherit", fontSize: "13px", color: "rgba(236,237,238,.4)", letterSpacing: ".04em", margin: "10px 0 0" }}>
+          <p style={{ fontFamily: "inherit", fontSize: "13px", color: "rgba(236,237,238,.65)", letterSpacing: ".04em", margin: "10px 0 0" }}>
             type <span style={{ color: ACCENT }}>&apos;help&apos;</span> to start
           </p>
         </header>
@@ -460,7 +421,7 @@ export default function Projects() {
               )}
             </div>
 
-            <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid rgba(236,237,238,.08)", color: "rgba(236,237,238,.22)", fontSize: "11px", letterSpacing: ".06em", flexShrink: 0 }}>
+            <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid rgba(236,237,238,.08)", color: "rgba(236,237,238,.5)", fontSize: "11px", letterSpacing: ".06em", flexShrink: 0 }}>
               ls · cat &lt;name&gt; · open &lt;name&gt; · clear
             </div>
           </div>
