@@ -372,10 +372,15 @@ export default function Projects() {
             projects
           </h2>
 
-          {/* Subtitle */}
-          <p style={{ fontFamily: "inherit", fontSize: "13px", color: "rgba(236,237,238,.65)", letterSpacing: ".04em", margin: "10px 0 0" }}>
-            type <span style={{ color: ACCENT }}>&apos;help&apos;</span> to start
-          </p>
+          {/* Subtitle + command hint on same row */}
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginTop: "10px" }}>
+            <p style={{ fontFamily: "inherit", fontSize: "13px", color: "rgba(236,237,238,.65)", letterSpacing: ".04em", margin: 0 }}>
+              type <span style={{ color: ACCENT }}>&apos;help&apos;</span> to start
+            </p>
+            <span style={{ fontFamily: "inherit", fontSize: "11px", letterSpacing: ".06em", color: "rgba(236,237,238,.5)" }}>
+              ls · cat &lt;name&gt; · open &lt;name&gt; · clear
+            </span>
+          </div>
         </header>
 
         {/* ── Main ───────────────────────────────────────────────────────── */}
@@ -421,9 +426,6 @@ export default function Projects() {
               )}
             </div>
 
-            <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid rgba(236,237,238,.08)", color: "rgba(236,237,238,.5)", fontSize: "11px", letterSpacing: ".06em", flexShrink: 0 }}>
-              ls · cat &lt;name&gt; · open &lt;name&gt; · clear
-            </div>
           </div>
         </main>
       </div>
