@@ -184,15 +184,17 @@ const NOISE_URI = (() => {
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 export default function Projects() {
-  const [lines,  setLines]  = useState<Line[]>(banner());
-  const [booted, setBooted] = useState(false);
-  const [input,  setInput]  = useState("");
+  const [lines,        setLines]       = useState<Line[]>(banner());
+  const [booted,       setBooted]      = useState(false);
+  const [input,        setInput]       = useState("");
+  const [subtitleText, setSubtitleText] = useState("");
 
-  const sectionRef = useRef<HTMLElement | null>(null);
-  const scrollRef  = useRef<HTMLDivElement | null>(null);
-  const inputRef   = useRef<HTMLInputElement | null>(null);
-  const timers     = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const bootDone   = useRef(false);
+  const sectionRef    = useRef<HTMLElement | null>(null);
+  const scrollRef     = useRef<HTMLDivElement | null>(null);
+  const inputRef      = useRef<HTMLInputElement | null>(null);
+  const timers        = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const bootDone      = useRef(false);
+  const subtitleDone  = useRef(false);
 
   // ── One-time setup: font + keyframe injection ─────────────────────────────
   useEffect(() => {
@@ -220,6 +222,30 @@ export default function Projects() {
       ([entry]) => {
         if (entry.isIntersecting) document.documentElement.dataset.dimParticles = "1";
         else delete document.documentElement.dataset.dimParticles;
+      },
+      { threshold: 0.4 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // ── Subtitle typewriter — fires once on first section entry ─────────────
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const FULL = "type 'help' to start";
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !subtitleDone.current) {
+          subtitleDone.current = true;
+          let i = 0;
+          const tick = () => {
+            i++;
+            setSubtitleText(FULL.slice(0, i));
+            if (i < FULL.length) timers.current.push(setTimeout(tick, 38));
+          };
+          timers.current.push(setTimeout(tick, 200));
+        }
       },
       { threshold: 0.4 },
     );
@@ -374,8 +400,26 @@ export default function Projects() {
 
           {/* Subtitle + command hint on same row */}
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginTop: "10px" }}>
-            <p style={{ fontFamily: "inherit", fontSize: "13px", color: "rgba(236,237,238,.65)", letterSpacing: ".04em", margin: 0 }}>
-              type <span style={{ color: ACCENT }}>&apos;help&apos;</span> to start
+            <p style={{ fontFamily: "inherit", fontSize: "13px", color: "rgba(236,237,238,.65)", letterSpacing: ".04em", margin: 0, minWidth: "0" }}>
+              {subtitleText.length > 0 && (() => {
+                // Highlight 'help' once it appears in the typed string
+                const FULL = "type 'help' to start";
+                const helpStart = 5;  // index of ' in 'help'
+                const helpEnd   = 11; // index after closing '
+                const len = subtitleText.length;
+                const before = FULL.slice(0, Math.min(len, helpStart));
+                const accent = len > helpStart ? FULL.slice(helpStart, Math.min(len, helpEnd)) : "";
+                const after  = len > helpEnd   ? FULL.slice(helpEnd, len) : "";
+                const cursor = len < FULL.length;
+                return (
+                  <>
+                    {before}
+                    {accent && <span style={{ color: ACCENT }}>{accent}</span>}
+                    {after}
+                    {cursor && <span style={{ opacity: 0.7, animation: "pe-flick 1.1s step-start infinite" }}>_</span>}
+                  </>
+                );
+              })()}
             </p>
             <span style={{ fontFamily: "inherit", fontSize: "11px", letterSpacing: ".06em", color: "rgba(236,237,238,.5)" }}>
               ls · cat &lt;name&gt; · open &lt;name&gt; · clear
