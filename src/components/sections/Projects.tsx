@@ -142,39 +142,36 @@ function whoami(): Line[] {
 
 function ls(): Line[] {
   return [
-    o("total " + TP.length, "dim"),
-    ...TP.map((p) => o("drwxr-xr-x  " + pad(p.dir, 26) + p.one + " · " + p.lang)),
+    ...TP.map((p) => o(pad(p.id, 20) + p.one, "out")),
     o(""),
-    o("// 'cat <name>' to inspect a project", "dim"),
+    o("cat <name> to inspect", "dim"),
     o(""),
   ];
 }
 
 function cat(p: TerminalProject): Line[] {
-  const head = "── " + p.title.toUpperCase() + " ";
-  const dash = "─".repeat(Math.max(6, 54 - head.length));
   return [
     o(""),
-    o(head + dash, "rule"),
-    o("   " + p.description),
-    o("   stack · " + p.tags.join(" · "), "dim"),
-    o("   role  · " + p.role, "dim"),
-    o("   sig   · " + p.sig, "dim"),
-    o("   link  · " + p.links.map((l) => "↗ " + l.label).join("    "), "accent"),
-    o("─".repeat(54), "rule"),
+    o(p.title, "accent"),
+    o(p.one, "dim"),
+    o(""),
+    o(p.description, "out"),
+    o(""),
+    o("stack  " + p.tags.join("  ·  "), "dim"),
+    o("role   " + p.role, "dim"),
+    o(""),
+    o(p.links.map((l) => "↗  " + l.label).join("   "), "accent"),
     o(""),
   ];
 }
 
 function help(): Line[] {
   return [
-    o("commands", "cmd"),
-    o("  ls               list all projects", "dim"),
-    o("  cat <name>       inspect a project", "dim"),
-    o("  open <name>      open project link", "dim"),
-    o("  tree             switch to tree view", "dim"),
-    o("  clear            clear the screen", "dim"),
-    o("  whoami           about me", "dim"),
+    o("ls              list projects", "dim"),
+    o("cat <name>      read a project", "dim"),
+    o("open <name>     open its link", "dim"),
+    o("whoami          about me", "dim"),
+    o("clear           reset", "dim"),
     o(""),
   ];
 }
@@ -187,20 +184,15 @@ const NOISE_URI = (() => {
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 export default function Projects() {
-  const [view,      setView]      = useState<"shell" | "tree">("shell");
-  const [lines,     setLines]     = useState<Line[]>(banner());
-  const [booted,    setBooted]    = useState(false);
-  const [input,     setInput]     = useState("");
-  const [treeOpen,  setTreeOpen]  = useState<Record<string, boolean>>({});
-  const [treeReveal, setReveal]   = useState(0);
-  const [treeDrawn,  setDrawn]    = useState(false);
+  const [lines,  setLines]  = useState<Line[]>(banner());
+  const [booted, setBooted] = useState(false);
+  const [input,  setInput]  = useState("");
 
   const sectionRef = useRef<HTMLElement | null>(null);
   const scrollRef  = useRef<HTMLDivElement | null>(null);
   const inputRef   = useRef<HTMLInputElement | null>(null);
   const timers     = useRef<ReturnType<typeof setTimeout>[]>([]);
   const bootDone   = useRef(false);
-  const treeDone   = useRef(false);
 
   // ── One-time setup: font + keyframe injection ─────────────────────────────
   useEffect(() => {
@@ -242,7 +234,7 @@ export default function Projects() {
 
   // ── Boot sequence — imperative timer queue ────────────────────────────────
   useEffect(() => {
-    if (view !== "shell" || bootDone.current) return;
+    if (bootDone.current) return;
     bootDone.current = true;
 
     let t = 0;
@@ -280,34 +272,14 @@ export default function Projects() {
       after(300, onDone);
     };
 
-    // Boot sequence: whoami → output → ls → output → ready
-    typeCmd("whoami", () => {
-      setLines((prev) => [...prev, ...whoami()]);
-      after(380, () => {
-        typeCmd("ls ~/projects", () => {
-          setLines((prev) => [...prev, ...ls()]);
-          setBooted(true);
-          timers.current.push(setTimeout(() => inputRef.current?.focus(), 30));
-        });
-      });
+    // Boot sequence: type `ls` → show project list → ready
+    typeCmd("ls", () => {
+      setLines((prev) => [...prev, ...ls()]);
+      setBooted(true);
+      timers.current.push(setTimeout(() => inputRef.current?.focus(), 30));
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view]);
-
-  // ── Tree reveal animation ─────────────────────────────────────────────────
-  useEffect(() => {
-    if (view !== "tree" || treeDone.current) return;
-    treeDone.current = true;
-    const total = 1 + TP.length;
-    let count   = 0;
-    const step  = () => {
-      count++;
-      setReveal(count);
-      if (count >= total) setDrawn(true);
-      else timers.current.push(setTimeout(step, 120));
-    };
-    timers.current.push(setTimeout(step, 220));
-  }, [view]);
+  }, []);
 
   // ── Command handler ───────────────────────────────────────────────────────
   const runCommand = useCallback((raw: string) => {
@@ -323,16 +295,6 @@ export default function Projects() {
     if (verb === "help" || verb === "h")          { setLines((p) => [...p, ...help()]); return; }
     if (["ls", "ll", "dir"].includes(verb))       { setLines((p) => [...p, ...ls()]);  return; }
     if (verb === "whoami")                        { setLines((p) => [...p, ...whoami()]); return; }
-    if (verb === "tree") {
-      setLines((p) => [...p, o("→ opening tree view…", "accent")]);
-      timers.current.push(setTimeout(() => setView("tree"), 260));
-      return;
-    }
-    if (verb === "shell") {
-      setLines((p) => [...p, o("→ switching to shell…", "accent")]);
-      timers.current.push(setTimeout(() => { setView("shell"); setTimeout(() => inputRef.current?.focus(), 30); }, 260));
-      return;
-    }
     if (["cat", "inspect", "cd"].includes(verb)) {
       const p = findProject(arg);
       if (p) setLines((prev) => [...prev, ...cat(p)]);
@@ -360,47 +322,6 @@ export default function Projects() {
     setLines((p) => [...p, o(`zsh: command not found: ${verb} — try 'help'`, "err")]);
   }, []);
 
-  // ── View switch ───────────────────────────────────────────────────────────
-  const switchView = (v: "shell" | "tree") => {
-    setView(v);
-    if (v === "shell") setTimeout(() => inputRef.current?.focus(), 30);
-  };
-
-  // ── Tree rows ─────────────────────────────────────────────────────────────
-  const treeRows = () => {
-    const rows: { text: string; kind: LineKind; clickable?: boolean; id?: string }[] = [];
-    rows.push({ text: "~/projects", kind: "accent" });
-    TP.forEach((p, i) => {
-      const last   = i === TP.length - 1;
-      const isOpen = !!treeOpen[p.id];
-      const label  = (last ? "└─ " : "├─ ") + (isOpen ? "▾ " : "▸ ") + p.dir;
-      rows.push({ text: pad(label, 34) + p.one + " · " + p.lang, kind: "cmd", clickable: true, id: p.id });
-      if (isOpen) {
-        const c = last ? "    " : "│   ";
-        rows.push({ text: c + "  readme · " + p.description, kind: "out" });
-        rows.push({ text: c + "  stack  · " + p.tags.join(" · "), kind: "dim" });
-        rows.push({ text: c + "  role   · " + p.role, kind: "dim" });
-        rows.push({ text: c + "  link   · " + p.links.map((l) => "↗ " + l.label).join("   "), kind: "accent" });
-        if (!last) rows.push({ text: "│", kind: "rule" });
-      }
-    });
-    return treeDrawn ? rows : rows.slice(0, treeReveal);
-  };
-
-  // ── Tab style ─────────────────────────────────────────────────────────────
-  const tabStyle = (active: boolean): React.CSSProperties => ({
-    padding:       "6px 15px",
-    cursor:        "pointer",
-    letterSpacing: ".14em",
-    fontSize:      "12px",
-    color:         active ? "#ececed" : "rgba(236,237,238,.4)",
-    userSelect:    "none",
-    transition:    "color .15s, border-color .15s",
-    background:    "none",
-    border:        "none",
-    borderBottom:  active ? `2px solid ${ACCENT}` : "2px solid transparent",
-    fontFamily:    "inherit",
-  });
 
   return (
     <SectionWrapper id="projects">
@@ -490,19 +411,10 @@ export default function Projects() {
             projects
           </h2>
 
-          {/* Subtitle + tabs row */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "10px" }}>
-            <p style={{ fontFamily: "inherit", fontSize: "13px", color: "rgba(236,237,238,.45)", letterSpacing: ".04em", margin: 0 }}>
-              type{" "}
-              <span style={{ color: ACCENT }}>&apos;help&apos;</span>
-              {" "}to start
-            </p>
-
-            <div style={{ display: "flex", gap: "4px" }}>
-              <button onClick={() => switchView("shell")} style={tabStyle(view === "shell")}>SHELL</button>
-              <button onClick={() => switchView("tree")}  style={tabStyle(view === "tree")}>TREE</button>
-            </div>
-          </div>
+          {/* Subtitle */}
+          <p style={{ fontFamily: "inherit", fontSize: "13px", color: "rgba(236,237,238,.4)", letterSpacing: ".04em", margin: "10px 0 0" }}>
+            type <span style={{ color: ACCENT }}>&apos;help&apos;</span> to start
+          </p>
         </header>
 
         {/* ── Main ───────────────────────────────────────────────────────── */}
@@ -517,68 +429,41 @@ export default function Projects() {
             flexDirection: "column",
           }}
         >
-          {/* SHELL */}
-          {view === "shell" && (
+          <div
+            onClick={() => inputRef.current?.focus()}
+            style={{ width: "100%", maxWidth: "720px", margin: "0 auto", height: "100%", display: "flex", flexDirection: "column", cursor: "text" }}
+          >
             <div
-              onClick={() => inputRef.current?.focus()}
-              style={{ width: "100%", maxWidth: "960px", margin: "0 auto", height: "100%", display: "flex", flexDirection: "column", cursor: "text" }}
+              ref={scrollRef}
+              style={{ flex: 1, minHeight: 0, overflowY: "auto", fontSize: "14px", lineHeight: 2, paddingRight: "8px", scrollbarWidth: "thin", scrollbarColor: "rgba(236,237,238,.12) transparent" }}
             >
-              <div
-                ref={scrollRef}
-                style={{ flex: 1, minHeight: 0, overflowY: "auto", fontSize: "14px", lineHeight: 1.7, paddingRight: "8px", scrollbarWidth: "thin", scrollbarColor: "rgba(236,237,238,.12) transparent" }}
-              >
-                {lines.map((line, i) => (
-                  <div key={i} style={{ color: color(line.kind), whiteSpace: "pre-wrap", margin: 0 }}>
-                    {line.text}
-                  </div>
-                ))}
+              {lines.map((line, i) => (
+                <div key={i} style={{ color: color(line.kind), whiteSpace: "pre-wrap", margin: 0 }}>
+                  {line.text}
+                </div>
+              ))}
 
-                {booted && (
-                  <div style={{ display: "flex", alignItems: "baseline", gap: "8px", paddingTop: "2px" }}>
-                    <span style={{ color: ACCENT, whiteSpace: "pre", flexShrink: 0, fontSize: "14px" }}>{PROMPT}</span>
-                    <input
-                      ref={inputRef}
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") runCommand(input); }}
-                      spellCheck={false}
-                      autoComplete="off"
-                      placeholder="type a command…"
-                      style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: "#ececed", fontFamily: "inherit", fontSize: "inherit", padding: 0, caretColor: ACCENT }}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid rgba(236,237,238,.08)", color: "rgba(236,237,238,.26)", fontSize: "12px", letterSpacing: ".03em", flexShrink: 0 }}>
-                help · ls · cat &lt;name&gt; · open &lt;name&gt; · tree · clear
-              </div>
+              {booted && (
+                <div style={{ display: "flex", alignItems: "baseline", gap: "8px", paddingTop: "2px" }}>
+                  <span style={{ color: ACCENT, whiteSpace: "pre", flexShrink: 0, fontSize: "14px" }}>{PROMPT}</span>
+                  <input
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") runCommand(input); }}
+                    spellCheck={false}
+                    autoComplete="off"
+                    placeholder="type a command…"
+                    style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: "#ececed", fontFamily: "inherit", fontSize: "inherit", padding: 0, caretColor: ACCENT }}
+                  />
+                </div>
+              )}
             </div>
-          )}
 
-          {/* TREE */}
-          {view === "tree" && (
-            <div style={{ width: "100%", maxWidth: "900px", margin: "0 auto", height: "100%", overflowY: "auto", paddingTop: "4px", scrollbarWidth: "thin", scrollbarColor: "rgba(236,237,238,.12) transparent" }}>
-              <div style={{ fontSize: "12px", letterSpacing: ".04em", color: "rgba(236,237,238,.38)", marginBottom: "16px" }}>
-                $ tree ~/projects&nbsp;&nbsp;<span style={{ color: "rgba(236,237,238,.22)" }}>— click a folder to expand</span>
-              </div>
-              <div style={{ fontSize: "14px", lineHeight: 1.95 }}>
-                {treeRows().map((row, i) => (
-                  <div
-                    key={i}
-                    onClick={() => {
-                      if (row.clickable && row.id && treeDrawn) {
-                        setTreeOpen((prev) => ({ ...prev, [row.id!]: !prev[row.id!] }));
-                      }
-                    }}
-                    style={{ color: color(row.kind), whiteSpace: "pre-wrap", margin: 0, cursor: row.clickable ? "pointer" : "default" }}
-                  >
-                    {row.text}
-                  </div>
-                ))}
-              </div>
+            <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid rgba(236,237,238,.08)", color: "rgba(236,237,238,.22)", fontSize: "11px", letterSpacing: ".06em", flexShrink: 0 }}>
+              ls · cat &lt;name&gt; · open &lt;name&gt; · clear
             </div>
-          )}
+          </div>
         </main>
       </div>
     </SectionWrapper>
