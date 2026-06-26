@@ -401,7 +401,7 @@ export default function Projects() {
             style={{
               fontFamily:    "var(--font-acidic), sans-serif",
               fontSize:      "clamp(2.8rem, 6vw, 5rem)",
-              fontWeight:    700,
+              fontWeight:    400,
               letterSpacing: "-.01em",
               lineHeight:    1,
               color:         "#f0ebe0",
