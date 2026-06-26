@@ -91,8 +91,8 @@ const TP: TerminalProject[] = [
 ];
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const ACCENT      = "#74e39a";
-const PROMPT      = "guest@portfolio:~/projects$";
+const ACCENT      = "#f0b0c4";
+const PROMPT      = ">";
 const TYPE_MS     = 42;
 
 // ─── Shell line ───────────────────────────────────────────────────────────────
@@ -129,19 +129,12 @@ function findProject(q: string): TerminalProject | undefined {
 const o = (text: string, kind: LineKind = "out"): Line => ({ text, kind });
 
 function banner(): Line[] {
-  const w  = 46;
-  return [
-    o("╭" + "─".repeat(w) + "╮", "accent"),
-    o("│" + pad("  guest@portfolio · projects", w) + "│", "cmd"),
-    o("│" + pad(`  ${TP.length} entries · type 'help' to start`, w) + "│", "dim"),
-    o("╰" + "─".repeat(w) + "╯", "accent"),
-    o(""),
-  ];
+  return [o("")];
 }
 
 function whoami(): Line[] {
   return [
-    o("guest"),
+    o("marwa"),
     o("// CS @ EPFL · builds web + mobile · plays CTF · makes art", "dim"),
     o(""),
   ];
@@ -475,27 +468,40 @@ export default function Projects() {
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <header
           style={{
-            position:       "relative",
-            zIndex:         3,
-            display:        "flex",
-            alignItems:     "center",
-            justifyContent: "space-between",
-            padding:        "14px 28px",
-            borderBottom:   "1px solid rgba(236,237,238,.1)",
-            flexShrink:     0,
+            position:    "relative",
+            zIndex:      3,
+            padding:     "32px 40px 20px",
+            borderBottom: "1px solid rgba(236,237,238,.1)",
+            flexShrink:  0,
           }}
         >
-          <div style={{ fontSize: "13px", letterSpacing: ".04em", color: "rgba(236,237,238,.5)" }}>
-            ~/portfolio<span style={{ color: "rgba(236,237,238,.22)" }}>/projects</span>
-          </div>
+          {/* Big title */}
+          <h2
+            style={{
+              fontFamily:    "var(--font-acidic), sans-serif",
+              fontSize:      "clamp(2.8rem, 6vw, 5rem)",
+              fontWeight:    700,
+              letterSpacing: "-.01em",
+              lineHeight:    1,
+              color:         "#f0ebe0",
+              margin:        0,
+            }}
+          >
+            projects
+          </h2>
 
-          <div style={{ display: "flex", gap: "4px" }}>
-            <button onClick={() => switchView("shell")} style={tabStyle(view === "shell")}>SHELL</button>
-            <button onClick={() => switchView("tree")}  style={tabStyle(view === "tree")}>TREE</button>
-          </div>
+          {/* Subtitle + tabs row */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "10px" }}>
+            <p style={{ fontFamily: "inherit", fontSize: "13px", color: "rgba(236,237,238,.45)", letterSpacing: ".04em", margin: 0 }}>
+              type{" "}
+              <span style={{ color: ACCENT }}>&apos;help&apos;</span>
+              {" "}to start
+            </p>
 
-          <div style={{ fontSize: "12px", letterSpacing: ".1em", color: "rgba(236,237,238,.28)" }}>
-            {TP.length} projects
+            <div style={{ display: "flex", gap: "4px" }}>
+              <button onClick={() => switchView("shell")} style={tabStyle(view === "shell")}>SHELL</button>
+              <button onClick={() => switchView("tree")}  style={tabStyle(view === "tree")}>TREE</button>
+            </div>
           </div>
         </header>
 
