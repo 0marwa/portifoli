@@ -61,7 +61,7 @@
 
 @theme inline {
   --font-sans: var(--font-geist-sans);
-  --font-family-acidic: var(--font-acidic);
+  --font-acidic: var(--font-acidic);
 
   --animate-page-turn-forward: page-turn-forward 0.6s ease-in-out;
   --animate-page-turn-back:    page-turn-back    0.6s ease-in-out;
