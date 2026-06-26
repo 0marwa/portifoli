@@ -21,7 +21,7 @@ export default function PageShell({
   const hasImage = bgImage.length > 0;
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen" style={{ background: "transparent" }}>
       {/* Fixed canvas background — always visible */}
       <BackgroundCanvas />
 
