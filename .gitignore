@@ -34,6 +34,7 @@ step2-*.png
 # claude code
 .claude/
 CLAUDE.md
+MEMORY.md
 
 # debug
 npm-debug.log*
