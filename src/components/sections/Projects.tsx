@@ -307,7 +307,7 @@ export default function Projects() {
     typeCmd("ls", () => {
       setLines((prev) => [...prev, ...ls()]);
       setBooted(true);
-      timers.current.push(setTimeout(() => inputRef.current?.focus(), 30));
+      timers.current.push(setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 30));
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
