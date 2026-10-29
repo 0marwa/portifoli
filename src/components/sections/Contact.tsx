@@ -36,33 +36,29 @@ const SOCIAL_LINKS = [
   },
 ] as const;
 
-// ─── ASCII butterfly ───────────────────────────────────────────────────────────
-// Two wings formed by words: YES, LOVE, THEE, PRECIOUS
-const BUTTERFLY = `\
-          \`          \`
- ,,,\`            \`           \`,,,
-\`YES8888bo.       :     .od8888YES\`
- \`88SI08DO88b.   :   :   .d888SI8DO88\`
-  8LOVEY' Y8b.  \`   \`  .d8Y  \`YLOVES
- jTHEE! .db. Yb.\`   \`.dY .db. 8THEE!
-  \`888 Y88Y  \`b ( ) d\`  Y88Y 888\`
-   8MYb \`\`  ,\`       \`,  \`\` dMY8
-   j8prECIOUSgf'' ':' \`"?g8prECIOUSk
-    \`Y' .8\`  d\`  \`b  .8. \`Y\`
-      .8\` db d\`; ;b db \`8.
-     d88  \`\` 8 ; 8  \`\` 88b
-     d881b .g8 \`,\` 8g. dI86b
-    :888LOVE8Y'    \`Y88LOVE888:
-     '! THEE888'    \`888THEE !\`
-       \`8Y \`Y      Y\` Y8\`
-             Y          Y`;
+// ─── ASCII safety pin ──────────────────────────────────────────────────────────
+// Coil spring, diagonal shaft, clasp catching the point
+const SAFETY_PIN = `\
+   .oo.
+  oOOOOo
+ oOOOOOOo
+ 8OOOOOO8
+  8OOOOO8--.__
+   \`OOOO\`      \`--.__
+    \`OO\`            \`--.__
+                          \`--.__
+                                \`--.__
+                                      \`--.__            .------.
+                                            \`--.__      (        )
+                                                  \`----=(    o     )
+                                                         \`-.______.-'`;
 
-function GlitchButterfly() {
+function GlitchSafetyPin() {
   return (
     <div
       className="relative select-none"
       style={{ fontFamily: "monospace", fontSize: "clamp(7px, 1.1vw, 13px)", lineHeight: 1.45 }}
-      aria-label="ASCII butterfly decoration"
+      aria-label="ASCII safety pin decoration"
     >
       {/* Base layer */}
       <pre
@@ -76,7 +72,7 @@ function GlitchButterfly() {
           padding:    0,
         }}
       >
-        {BUTTERFLY}
+        {SAFETY_PIN}
       </pre>
 
       {/* Pink glitch layer */}
@@ -95,7 +91,7 @@ function GlitchButterfly() {
           animationDelay:  "-1.3s",
         }}
       >
-        {BUTTERFLY}
+        {SAFETY_PIN}
       </pre>
 
       {/* Cyan glitch layer */}
@@ -114,7 +110,7 @@ function GlitchButterfly() {
           animationDelay:  "-2.7s",
         }}
       >
-        {BUTTERFLY}
+        {SAFETY_PIN}
       </pre>
     </div>
   );
@@ -140,7 +136,7 @@ export default function Contact() {
           data-glitch-delay="0"
           className="glitch-hidden flex items-center gap-10"
         >
-          {/* Social links — left of butterfly */}
+          {/* Social links — left of safety pin */}
           <nav
             aria-label="Contact links"
             className="flex flex-col gap-5"
@@ -162,8 +158,8 @@ export default function Contact() {
             ))}
           </nav>
 
-          {/* Butterfly */}
-          <GlitchButterfly />
+          {/* Safety pin */}
+          <GlitchSafetyPin />
         </div>
       </div>
     </SectionWrapper>
