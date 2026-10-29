@@ -21,6 +21,7 @@ export const PROJECTS: Project[] = [
     description:
       "Drop in any documents, ask questions, get answers grounded solely in those docs, not from general knowledge. Built as a reusable skeleton: Next.js frontend, FastAPI backend, Supabase pgvector for cosine similarity search, sentence-transformers running privately on the backend, Groq LLM (swappable via env). Session-isolated, no fine-tuning required.",
     role: "full-stack · skeleton project",
+    context: "Personal project",
     tags: ["Next.js", "FastAPI", "Supabase", "pgvector", "Python"],
     links: [
       { label: "github", url: "https://github.com/0marwa/rag-chatbot" },
