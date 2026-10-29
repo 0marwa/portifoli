@@ -6,6 +6,7 @@ export const PROFILE: Profile = {
   role: "Computer Science student",
   location: "Lausanne, CH",
   tagline: "& all pretty things enjoyer",
+  intro: "CS @ EPFL · builds web + mobile · plays CTF · makes art",
   email: "rezziki.marwa@gmail.com",
   github: { handle: "0marwa", url: "https://github.com/0marwa" },
   linkedin: { handle: "marwarezziki", url: "https://www.linkedin.com/in/marwarezziki/" },

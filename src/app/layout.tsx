@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
-import PageShell from "@/components/layout/PageShell";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -15,8 +14,9 @@ const acidic = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Marwa | Portfolio",
-  description: "Personal portfolio of Marwa — developer & creative.",
+  title: "Marwa Rezziki — Computer Science student",
+  description:
+    "Portfolio of Marwa Rezziki, Computer Science student at EPFL in Lausanne — web, mobile and AI projects.",
 };
 
 export default function RootLayout({
@@ -30,7 +30,7 @@ export default function RootLayout({
         className={`${geist.variable} ${acidic.variable} font-sans antialiased text-[#f0ebe0]`}
         style={{ color: "#f0ebe0", background: "transparent" }}
       >
-        <PageShell>{children}</PageShell>
+        {children}
       </body>
     </html>
   );

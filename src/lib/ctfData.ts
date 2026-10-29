@@ -12,6 +12,7 @@ export const CTF_WRITEUPS: CTFWriteup[] = [
     techniques: ["technique_01", "technique_02"],
     summary: "Placeholder — replace with real writeup summary once CTFs are completed.",
     flagRedacted: true,
+    draft: true,
   },
   {
     id: "ctf-002",
@@ -24,6 +25,7 @@ export const CTF_WRITEUPS: CTFWriteup[] = [
     techniques: ["technique_01", "technique_02"],
     summary: "Placeholder — replace with real writeup summary once CTFs are completed.",
     flagRedacted: true,
+    draft: true,
   },
   {
     id: "ctf-003",
@@ -36,6 +38,7 @@ export const CTF_WRITEUPS: CTFWriteup[] = [
     techniques: ["technique_01", "technique_02"],
     summary: "Placeholder — replace with real writeup summary once CTFs are completed.",
     flagRedacted: true,
+    draft: true,
   },
   {
     id: "ctf-004",
@@ -48,5 +51,6 @@ export const CTF_WRITEUPS: CTFWriteup[] = [
     techniques: ["technique_01", "technique_02"],
     summary: "Placeholder — replace with real writeup summary once CTFs are completed.",
     flagRedacted: true,
+    draft: true,
   },
 ];
