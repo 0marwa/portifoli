@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import SectionWrapper from "@/components/ui/SectionWrapper";
+import OSWindow from "@/components/ui/OSWindow";
 import { useGlitchReveal } from "@/hooks/useGlitchReveal";
 import type { CTFWriteup } from "@/types/ctf";
 import { CTF_WRITEUPS } from "@/lib/ctfData";
@@ -63,31 +64,6 @@ function difficultyColor(difficulty: CTFWriteup["difficulty"]): string {
     case "medium": return "#f0b0c4";
     case "hard":   return "#ff6b6b";
   }
-}
-
-// ─── CornerBrackets (copied from ArtGallery) ─────────────────────────────────
-function CornerBrackets({
-  color = "rgba(255,255,255,0.5)",
-  size  = 10,
-}: {
-  color?: string;
-  size?:  number;
-}) {
-  const shared: React.CSSProperties = {
-    position:    "absolute",
-    width:       size,
-    height:      size,
-    borderColor: color,
-    borderStyle: "solid",
-  };
-  return (
-    <>
-      <span aria-hidden="true" style={{ ...shared, top: 0, left: 0,   borderWidth: "1px 0 0 1px" }} />
-      <span aria-hidden="true" style={{ ...shared, top: 0, right: 0,  borderWidth: "1px 1px 0 0" }} />
-      <span aria-hidden="true" style={{ ...shared, bottom: 0, left: 0, borderWidth: "0 0 1px 1px" }} />
-      <span aria-hidden="true" style={{ ...shared, bottom: 0, right: 0, borderWidth: "0 1px 1px 0" }} />
-    </>
-  );
 }
 
 // ─── CTFNode ──────────────────────────────────────────────────────────────────
@@ -262,254 +238,170 @@ function ConnectorSVG() {
   );
 }
 
-// ─── CTFDetailPanel — slides in from the right ────────────────────────────────
-interface CTFDetailPanelProps {
-  writeup: CTFWriteup | null;
+// ─── CTFWindow — draggable / resizable OS-style window ───────────────────────
+interface CTFWindowProps {
+  writeup: CTFWriteup;
   onClose: () => void;
 }
 
-function CTFDetailPanel({ writeup, onClose }: CTFDetailPanelProps) {
-  const isOpen = writeup !== null;
-
-  // Close on Escape
-  useEffect(() => {
-    if (!writeup) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [writeup, onClose]);
-
-  const dotColor = writeup ? difficultyColor(writeup.difficulty) : "#a0d8d8";
+function CTFWindow({ writeup, onClose }: CTFWindowProps) {
+  const dotColor = difficultyColor(writeup.difficulty);
 
   return (
-    <>
-      {/* Dim backdrop — click to close */}
-      <div
-        role="presentation"
-        onClick={onClose}
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 49,
-          background: "rgba(0,0,0,0.5)",
-          pointerEvents: isOpen ? "auto" : "none",
-          opacity: isOpen ? 1 : 0,
-          transition: "opacity 0.25s ease",
-        }}
-      />
+    <OSWindow title={`ctf://${writeup.ctfName}/${writeup.challengeName}`} onClose={onClose}>
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
+        {/* Header */}
+        <div style={{ padding: "1.5rem 1.5rem 1.25rem", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.5rem" }}>
+            {"// CTF_DETAIL"}
+          </div>
+          <h2
+            style={{
+              fontSize: "1.25rem",
+              fontWeight: "bold",
+              letterSpacing: "0.05em",
+              fontFamily: "var(--font-acidic), monospace",
+              color: "#a0d8d8",
+              lineHeight: 1.2,
+              animation: "glitch-text 6s step-end infinite",
+            }}
+          >
+            {writeup.challengeName.toUpperCase()}
+          </h2>
+        </div>
 
-      {/* Panel — slides in from right */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={writeup?.challengeName ?? "CTF writeup detail"}
-        style={{
-          position: "fixed",
-          right: 0,
-          top: 0,
-          height: "100vh",
-          width: "min(90vw, 480px)",
-          zIndex: 50,
-          background: "rgba(8, 12, 12, 0.98)",
-          border: "1px solid rgba(160, 216, 216, 0.2)",
-          borderRight: "none",
-          fontFamily: "monospace",
-          display: "flex",
-          flexDirection: "column",
-          overflowY: "auto",
-          transform: isOpen ? "translateX(0)" : "translateX(100%)",
-          transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-        }}
-      >
-        {/* Corner brackets */}
-        <CornerBrackets color="rgba(160,216,216,0.3)" size={14} />
+      {/* Body */}
+      <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
 
-        {writeup && (
-          <>
-            {/* Header */}
-            <div
-              style={{
-                padding: "1.5rem",
-                borderBottom: "1px solid rgba(255,255,255,0.08)",
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "space-between",
-                gap: "1rem",
-              }}
-            >
-              <div>
-                <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.5rem" }}>
-                  {"// CTF_DETAIL"}
-                </div>
-                <h2
-                  style={{
-                    fontSize: "1.25rem",
-                    fontWeight: "bold",
-                    letterSpacing: "0.05em",
-                    fontFamily: "var(--font-acidic), monospace",
-                    color: "#a0d8d8",
-                    lineHeight: 1.2,
-                    animation: "glitch-text 6s step-end infinite",
-                  }}
-                >
-                  {writeup.challengeName.toUpperCase()}
-                </h2>
+        {/* Platform + category + difficulty row */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
+          <span
+            style={{
+              border: "1px solid rgba(255,255,255,0.2)",
+              color: "rgba(255,255,255,0.7)",
+              padding: "0.2rem 0.6rem",
+              fontSize: "11px",
+              letterSpacing: "0.08em",
+            }}
+          >
+            {writeup.platform}
+          </span>
+          <span
+            style={{
+              border: "1px solid rgba(160,216,216,0.4)",
+              color: "#a0d8d8",
+              padding: "0.2rem 0.6rem",
+              fontSize: "11px",
+              letterSpacing: "0.08em",
+            }}
+          >
+            {writeup.category}
+          </span>
+          <span
+            style={{
+              border: `1px solid ${dotColor}55`,
+              color: dotColor,
+              padding: "0.2rem 0.6rem",
+              fontSize: "11px",
+              letterSpacing: "0.08em",
+            }}
+          >
+            {writeup.difficulty}
+          </span>
+        </div>
+
+        {/* Solve date */}
+        <div>
+          <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.4rem" }}>
+            SOLVE_DATE
+          </div>
+          <div style={{ fontSize: "12px", opacity: 0.7, letterSpacing: "0.05em" }}>
+            {`// ${writeup.solveDate}`}
+          </div>
+        </div>
+
+        {/* Techniques */}
+        <div>
+          <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.5rem" }}>
+            TECHNIQUES
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+            {writeup.techniques.map((t) => (
+              <div key={t} style={{ fontSize: "12px", opacity: 0.75, letterSpacing: "0.04em" }}>
+                {`→ ${t}`}
               </div>
-              <button
-                onClick={onClose}
-                aria-label="Close CTF detail"
-                style={{
-                  background: "none",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  color: "white",
-                  cursor: "pointer",
-                  padding: "0.25rem 0.5rem",
-                  fontSize: "11px",
-                  letterSpacing: "0.1em",
-                  flexShrink: 0,
-                  marginTop: "1.5rem",
-                }}
-              >
-                [ESC]
-              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Writeup / summary */}
+        <div>
+          <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.5rem" }}>
+            WRITEUP
+          </div>
+          <p style={{ fontSize: "0.875rem", lineHeight: 1.7, opacity: 0.85, color: "white" }}>
+            {writeup.summary}
+          </p>
+        </div>
+
+        {/* Flag block */}
+        <div>
+          <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.4rem" }}>
+            FLAG
+          </div>
+          {writeup.flagRedacted ? (
+            <div style={{ fontSize: "12px", letterSpacing: "0.06em", color: "#f0b0c4", opacity: 0.8 }}>
+              flag&#123;REDACTED&#125;
             </div>
-
-            {/* Body */}
-            <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-
-              {/* Platform + category + difficulty row */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
-                <span
-                  style={{
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    color: "rgba(255,255,255,0.7)",
-                    padding: "0.2rem 0.6rem",
-                    fontSize: "11px",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  {writeup.platform}
-                </span>
-                <span
-                  style={{
-                    border: "1px solid rgba(160,216,216,0.4)",
-                    color: "#a0d8d8",
-                    padding: "0.2rem 0.6rem",
-                    fontSize: "11px",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  {writeup.category}
-                </span>
-                <span
-                  style={{
-                    border: `1px solid ${dotColor}55`,
-                    color: dotColor,
-                    padding: "0.2rem 0.6rem",
-                    fontSize: "11px",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  {writeup.difficulty}
-                </span>
-              </div>
-
-              {/* Solve date */}
-              <div>
-                <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.4rem" }}>
-                  SOLVE_DATE
-                </div>
-                <div style={{ fontSize: "12px", opacity: 0.7, letterSpacing: "0.05em" }}>
-                  {`// ${writeup.solveDate}`}
-                </div>
-              </div>
-
-              {/* Techniques */}
-              <div>
-                <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.5rem" }}>
-                  TECHNIQUES
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                  {writeup.techniques.map((t) => (
-                    <div key={t} style={{ fontSize: "12px", opacity: 0.75, letterSpacing: "0.04em" }}>
-                      {`→ ${t}`}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Writeup / summary */}
-              <div>
-                <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.5rem" }}>
-                  WRITEUP
-                </div>
-                <p style={{ fontSize: "0.875rem", lineHeight: 1.7, opacity: 0.85, color: "white" }}>
-                  {writeup.summary}
-                </p>
-              </div>
-
-              {/* Flag block */}
-              <div>
-                <div style={{ fontSize: "10px", letterSpacing: "0.2em", opacity: 0.4, marginBottom: "0.4rem" }}>
-                  FLAG
-                </div>
-                {writeup.flagRedacted ? (
-                  <div style={{ fontSize: "12px", letterSpacing: "0.06em", color: "#f0b0c4", opacity: 0.8 }}>
-                    flag&#123;REDACTED&#125;
-                  </div>
-                ) : writeup.flag ? (
-                  <div style={{ fontSize: "12px", letterSpacing: "0.06em", color: "#a0d8d8" }}>
-                    {writeup.flag}
-                  </div>
-                ) : (
-                  <div style={{ fontSize: "12px", letterSpacing: "0.06em", opacity: 0.3 }}>
-                    —
-                  </div>
-                )}
-              </div>
+          ) : writeup.flag ? (
+            <div style={{ fontSize: "12px", letterSpacing: "0.06em", color: "#a0d8d8" }}>
+              {writeup.flag}
             </div>
-
-            {/* Footer CTA */}
-            {writeup.writeupUrl && (
-              <div
-                style={{
-                  padding: "1.25rem 1.5rem",
-                  borderTop: "1px solid rgba(255,255,255,0.08)",
-                  marginTop: "auto",
-                }}
-              >
-                <a
-                  href={writeup.writeupUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "block",
-                    textAlign: "center",
-                    border: "1px solid rgba(160,216,216,0.5)",
-                    color: "#a0d8d8",
-                    padding: "0.75rem 1rem",
-                    fontSize: "12px",
-                    letterSpacing: "0.15em",
-                    textDecoration: "none",
-                    transition: "background 0.15s, color 0.15s",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLAnchorElement).style.background = "rgba(160,216,216,0.1)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
-                  }}
-                >
-                  VIEW FULL WRITEUP →
-                </a>
-              </div>
-            )}
-          </>
-        )}
+          ) : (
+            <div style={{ fontSize: "12px", letterSpacing: "0.06em", opacity: 0.3 }}>
+              —
+            </div>
+          )}
+        </div>
       </div>
-    </>
+
+      {/* Footer CTA */}
+      {writeup.writeupUrl && (
+        <div
+          style={{
+            padding: "1.25rem 1.5rem",
+            borderTop: "1px solid rgba(255,255,255,0.08)",
+            marginTop: "auto",
+          }}
+        >
+          <a
+            href={writeup.writeupUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "block",
+              textAlign: "center",
+              border: "1px solid rgba(160,216,216,0.5)",
+              color: "#a0d8d8",
+              padding: "0.75rem 1rem",
+              fontSize: "12px",
+              letterSpacing: "0.15em",
+              textDecoration: "none",
+              transition: "background 0.15s, color 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.background = "rgba(160,216,216,0.1)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
+            }}
+          >
+            VIEW FULL WRITEUP →
+          </a>
+        </div>
+      )}
+      </div>
+    </OSWindow>
   );
 }
 
@@ -678,8 +570,10 @@ export default function CTFWriteups() {
         ))}
       </SectionWrapper>
 
-      {/* Detail panel — slides in from right */}
-      <CTFDetailPanel writeup={selectedWriteup} onClose={handleClose} />
+      {/* Detail window — draggable / resizable; keyed so each writeup opens fresh */}
+      {selectedWriteup && (
+        <CTFWindow key={selectedWriteup.id} writeup={selectedWriteup} onClose={handleClose} />
+      )}
     </>
   );
 }
