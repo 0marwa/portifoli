@@ -1,12 +1,12 @@
 # Portifoli — Spec (cahier des charges)
 
-_Last updated: 2026-10-29_
+_Last updated: 2026-10-29 (shared-look revision)_
 
 ## 1. Vision
 
 One site, two audiences.
 
-- **Clean mode** (`/`) is the version employers see. It is dark and on-brand, but it's disciplined: you can scan it in 30 seconds, and it's fast and readable on any device.
+- **Clean mode** (`/`) is the version employers see. It is the **same site** as wild mode (AboutMe, navbar, particles, Contact) except **Projects and CTF**, which are swapped for readable versions you can scan in 30 seconds.
 - **Wild mode** (`/digidump`) is the stylish, experimental version: particles, glitch, terminal and OS windows, art, photos.
 - **The bridge:** clicking the avatar (the drawn head in the centre of the About section) makes the clean site **explode** into wild mode. A button in wild mode **implodes** it back.
 
@@ -24,7 +24,8 @@ The clean site must hold up on its own. Wild mode is a reward for curious visito
 | D4 | CV | Clean mode offers a **CV download**. |
 | D5 | Platforms | Both modes **and** the explosion work on **phone, tablet and desktop**. |
 | D6 | Shared data | All content lives in `src/lib/` data files, and both modes read from them. Content is never duplicated. |
-| D7 | Routing | Separate routes, so clean mode never loads wild-mode code (p5, the 3D gallery, OSWindow). |
+| D7 | Routing | Separate routes sharing one shell (particles, navbar, scroll-to-top). Only the Projects and CTF sections differ, plus the extras that live in wild mode only. |
+| D8 | Shared look | AboutMe, navbar, particles and Contact are visually identical in both modes (decided 2026-10-29). |
 
 ---
 
@@ -32,18 +33,18 @@ The clean site must hold up on its own. Wild mode is a reward for curious visito
 
 ```
 /            Clean mode
-├── #me        Avatar (explode trigger) + name, role, location, short intro
-├── #projects  Project card grid  ← most important section
-├── #security  CTF / security work, compact list
-└── #contact   Email · GitHub · LinkedIn · CV download
+├── #about     Shared AboutMe — avatar is the explode trigger here
+├── #projects  Project card grid  ← most important section (clean-only)
+├── #ctf       Compact CTF list (clean-only, hidden until real writeups)
+└── #contact   Shared Contact (+ CV download)
 
 /digidump    Wild mode
-├── Me         Current AboutMe (glitch reveal, blurbs, particles)
+├── Me         Shared AboutMe
 ├── Projects   Terminal-style projects (current)
 ├── CTF        Node map + OSWindow writeups (current)
 ├── Art        3D depth gallery (currently hidden, comes back here)
 ├── Photos     Corkboard + film strip (currently hidden, comes back here)
-├── Contact    Current contact + reworked ASCII piece
+├── Contact    Shared Contact
 └── "back to normal" control → implode → /
 ```
 
@@ -53,17 +54,11 @@ Later on, wild mode may evolve into the **Widget OS** concept: a desktop with fl
 
 ## 4. Clean mode requirements
 
-### 4.1 General
-- Same palette: `#0d0d0d` background, `#f0ebe0` text, pink `#f0b0c4` / teal `#a0d8d8` used sparingly as accents.
-- **Typography:** Acidic only for the name and section titles. Geist for all body text, labels and metadata.
-- Particles are either off, or a very subtle static/slow field. Readability always wins.
-- Simple sticky nav: `me · projects · security · contact` plus a CV button.
-- No scroll hijacking. Native scrolling only.
-
-### 4.2 Me (hero)
-- The avatar stays as the signature visual and is the explode trigger (§6).
-- Name, role ("Computer Science student, EPFL" or similar), location (Lausanne, CH), and a 1–2 line intro.
-- **Discoverability hint** (§6.4).
+### 4.1 Shared with wild mode
+AboutMe, navbar, particles, scroll-to-top and Contact are the **same components** in both modes. Clean mode only adds:
+- The avatar becomes a link to wild mode, with an idle glitch and a "don't click me" hint (§6.4).
+- A "✦ digidump" navbar link as a backup way in.
+- The CTF navbar link is hidden until real writeups exist.
 
 ### 4.3 Projects (top priority)
 - A responsive card grid: 1 column on phone, 2 on tablet, 2–3 on desktop.
@@ -82,8 +77,7 @@ Later on, wild mode may evolve into the **Widget OS** concept: a desktop with fl
 - Hidden until **real** writeups exist. Placeholder data must never ship to clean mode.
 
 ### 4.5 Contact
-- Email, GitHub, LinkedIn: icon + text, all clickable.
-- **CV download button** linking to `/cv/Marwa_Rezziki_CV.pdf` (the file needs to be added).
+- The shared Contact section, plus a **CV download button** linking to `/cv/Marwa_Rezziki_CV.pdf` (the file needs to be added).
 
 ---
 
@@ -144,7 +138,7 @@ Additions to the `Project` type: `pitch`, `role`, `context`, `outcome?`, `demo?`
 ## 8. Non-functional requirements
 
 - **Responsive:** 320 px → wide desktop, no horizontal scroll, minimum 16 px gutters.
-- **Performance (clean mode):** good Lighthouse scores, no p5 or 3D code in the `/` bundle, images via `next/image` with `sizes`.
+- **Performance:** good Lighthouse scores; wild-only sections (3D gallery, OSWindow, terminal) never ship in the `/` bundle; images via `next/image` with `sizes`.
 - **Accessibility:** semantic headings, visible focus states, AA contrast in clean mode, alt text on all images.
 - **SEO:** proper title and description, Open Graph image, clean mode is the indexed page.
 
@@ -155,8 +149,8 @@ Additions to the `Project` type: `pitch`, `role`, `context`, `outcome?`, `demo?`
 | Phase | Scope | Done when |
 |---|---|---|
 | **P1 · Data** | Move content into `src/lib/` (projects, profile, routes); extend `Project` type | Both modes can import shared data; no content left in components |
-| **P2 · Clean mode** | Build `/`: hero, project grid, security list (hidden until real data), contact + CV | Recruiter-ready on phone, tablet and desktop |
-| **P3 · Wild route** | Move current sections to `/digidump`; add "back to normal" control | `/digidump` works standalone; `/` has no wild code in its bundle |
+| **P2 · Clean mode** | `/` = shared sections + clean project grid + clean CTF list (hidden until real data); stylish site moved to `/digidump` | Recruiter-ready on phone, tablet and desktop |
+| **P3 · Wild route** | Add "back to normal" control; wild-only extras routing | `/digidump` works standalone |
 | **P4 · Explosion** | Trigger, overlay, burst, shards, implosion, reduced-motion fallback, prefetch | Smooth on mid-range phone and desktop |
 | **P5 · Wild extras** | Bring back Art + Photos; rework the Contact ASCII piece; explore Widget OS | Galleries live with real assets |
 | **P6 · Polish** | Accessibility pass, SEO/OG, performance, cross-browser/device QA | Ready to share |
@@ -178,8 +172,6 @@ Additions to the `Project` type: `pitch`, `role`, `context`, `outcome?`, `demo?`
 ## 11. Open questions
 
 - Final wild-mode name: `/digidump` or `/funsies`?
-- Clean-mode particles: fully off, or a very faint field?
-- Keep the custom cursor in clean mode, or wild-only?
 - Contact ASCII piece in wild mode: safety pin (branch `28-safety-pin-ascii`), or something new?
 - What to do with the unmerged branches: `feat/ctf-redesign`, `10-projects-section` (text-scramble hook could be useful in wild mode), `9-background-inspos`.
 

@@ -16,4 +16,5 @@ export interface CTFWriteup {
   writeupUrl?: string;
   flag?: string;
   flagRedacted?: boolean;
+  draft?: boolean; // placeholder / unfinished — hidden in clean mode
 }

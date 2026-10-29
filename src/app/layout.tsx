@@ -15,8 +15,9 @@ const acidic = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Marwa | Portfolio",
-  description: "Personal portfolio of Marwa — developer & creative.",
+  title: "Marwa Rezziki — Computer Science student",
+  description:
+    "Portfolio of Marwa Rezziki, Computer Science student at EPFL in Lausanne — web, mobile and AI projects.",
 };
 
 export default function RootLayout({

@@ -36,6 +36,7 @@ export interface Profile {
   role: string;
   location: string;
   tagline: string;
+  intro: string;
   email: string;
   github: { handle: string; url: string };
   linkedin: { handle: string; url: string };

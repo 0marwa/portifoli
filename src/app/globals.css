@@ -128,3 +128,21 @@
 
 .glitch-reveal-active     { animation: glitch-reveal       0.65s steps(1, end) forwards; }
 .glitch-reveal-img-active { animation: glitch-reveal-image 0.80s steps(1, end) forwards; }
+
+/* ─── Clean mode: avatar idle glitch (hint that it's clickable) ──────────── */
+@keyframes avatar-idle-glitch {
+  0%, 90%, 100% { transform: translate(0, 0); clip-path: none; }
+  91% { transform: translate(-3px, 0);  clip-path: inset(12% 0 60% 0); }
+  92% { transform: translate(3px, 1px); clip-path: inset(55% 0 20% 0); }
+  93% { transform: translate(-1px, 0);  clip-path: inset(30% 0 45% 0); }
+  94% { transform: translate(0, 0);     clip-path: none; }
+}
+
+.avatar-trigger:not(:hover):not(:focus-visible) .avatar-idle {
+  animation: avatar-idle-glitch 6s steps(1, end) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-trigger .avatar-idle { animation: none; }
+}
+
