@@ -7,14 +7,39 @@ export interface NavLink {
   href: SectionId;
 }
 
-// ─── Project card ─────────────────────────────────────────────────────────────
+// ─── Project ──────────────────────────────────────────────────────────────────
+// Shared by clean mode (card grid) and wild mode (terminal). Array order in
+// src/lib/projects.ts is display order.
+export interface ProjectLink {
+  label: string; // e.g. "github", "live demo"
+  url: string;
+}
+
 export interface Project {
   id: string;
   title: string;
+  pitch: string;       // one-liner
   description: string;
-  tags: string[];
-  image: string; // path relative to /public
-  link?: string;
+  role: string;        // what Marwa did, e.g. "full-stack · AI agents"
+  context?: string;    // personal / client / course + team
+  outcome?: string;    // award, result, metric
+  tags: string[];      // tech stack
+  image?: string;      // path relative to /public — omit until the file exists
+  links: ProjectLink[];
+  featured?: boolean;
+}
+
+// ─── Profile ──────────────────────────────────────────────────────────────────
+export interface Profile {
+  name: string;
+  firstName: string;
+  role: string;
+  location: string;
+  tagline: string;
+  email: string;
+  github: { handle: string; url: string };
+  linkedin: { handle: string; url: string };
+  cvPath?: string; // path relative to /public — omit until the file exists
 }
 
 // ─── Art page ─────────────────────────────────────────────────────────────────
