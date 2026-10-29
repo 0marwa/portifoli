@@ -19,6 +19,12 @@
   to   { opacity: 1; transform: translateY(0);   }
 }
 
+@keyframes os-window-open {
+  0%   { opacity: 0; transform: scale(0.96); clip-path: inset(0 0 100% 0); }
+  60%  { opacity: 1; clip-path: inset(0 0 0 0); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
 @keyframes glitch-text {
   0%, 89%, 100% { clip-path: none; transform: none; opacity: 1; }
   90%  { clip-path: inset(10% 0 80% 0); transform: translate(-3px, 0); opacity: 0.9; }
@@ -66,6 +72,7 @@
   --animate-page-turn-forward: page-turn-forward 0.6s ease-in-out;
   --animate-page-turn-back:    page-turn-back    0.6s ease-in-out;
   --animate-fade-in:           fade-in           0.5s ease-out forwards;
+  --animate-os-window-open:    os-window-open    0.22s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-glitch-text:       glitch-text       4s  step-end infinite;
   --animate-glitch-line:       glitch-line       6s  step-end infinite;
   --animate-node-pulse:        node-pulse        3s  ease-in-out infinite;
