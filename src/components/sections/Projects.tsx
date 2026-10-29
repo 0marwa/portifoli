@@ -3,97 +3,29 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import SectionWrapper from "@/components/ui/SectionWrapper";
 import type { Project } from "@/types";
+import { PROJECTS } from "@/lib/projects";
 
-// ─── Project data ──────────────────────────────────────────────────────────────
-const PROJECTS: Project[] = [
-  {
-    id: "cittitrip",
-    title: "CittiTrip",
-    description:
-      "AI-powered travel planner. Next.js + React Native frontend, TypeScript business logic, external API integrations. Designed and shipped the full stack autonomously.",
-    tags: ["Next.js", "React Native", "TypeScript"],
-    image: "/images/projects/cittitrip.png",
-    link: "https://github.com/0marwa/citti-trip",
-  },
-  {
-    id: "rag-chatbot",
-    title: "RAG Chatbot",
-    description:
-      "Drop in any documents, ask questions, get answers grounded solely in those docs, not from general knowledge. Built as a reusable skeleton: Next.js frontend, FastAPI backend, Supabase pgvector for cosine similarity search, sentence-transformers running privately on the backend, Groq LLM (swappable via env). Session-isolated, no fine-tuning required.",
-    tags: ["Next.js", "FastAPI", "Supabase", "pgvector", "Python"],
-    image: "/images/projects/rag-chatbot.png",
-    link: "https://github.com/0marwa/rag-chatbot",
-  },
-  {
-    id: "feedme",
-    title: "FeedMe",
-    description:
-      "Android app built in a 14-week SCRUM team project at EPFL (CS311). Allows you to scan ingredients and recognizes them (classification), then generates personalized meal recommendations. Covered ideation → Figma prototyping → Kotlin development → user testing → final demo. Awarded 2nd place at Battle of the Apps 2023.",
-    tags: ["Kotlin", "Android Studio", "Figma", "SCRUM", "Machine Learning"],
-    image: "/images/projects/feedme.png",
-    link: "https://github.com/feedme-swent-epfl/feedme-android",
-  },
-  {
-    id: "scala-webapp",
-    title: "Web App",
-    description:
-      "Academic web application built for EPFL's Software Construction course. Focused on software architecture, clean separation of concerns, and UI implementation in Scala.",
-    tags: ["Scala", "Web", "EPFL"],
-    image: "/images/projects/scala-webapp.png",
-  },
-];
-
-// ─── Terminal-enriched project metadata ───────────────────────────────────────
-interface TerminalProject extends Project {
-  dir:   string;
-  lang:  string;
-  one:   string;
-  role:  string;
-  sig:   string;
-  links: { label: string; url: string }[];
+// ─── Terminal-only extras (wild mode presentation) ────────────────────────────
+// Content lives in src/lib/projects.ts; these fields only exist for the shell UI.
+interface TerminalExtras {
+  dir:  string;
+  lang: string;
+  sig:  string;
 }
 
-const TP: TerminalProject[] = [
-  {
-    ...PROJECTS[0],
-    dir:  "cittitrip/",
-    lang: "Next.js",
-    one:  "AI travel planner",
-    role: "full-stack · AI agents",
-    sig:  "plan() → trip",
-    links: [{ label: "github", url: "https://github.com/0marwa/citti-trip" }],
-  },
-  {
-    ...PROJECTS[1],
-    dir:  "rag-chatbot/",
-    lang: "Next.js + Python",
-    one:  "RAG document chatbot",
-    role: "full-stack · skeleton project",
-    sig:  "POST /api/chat",
-    links: [
-      { label: "github", url: "https://github.com/0marwa/rag-chatbot" },
-      { label: "live demo", url: "https://rag-chatbot-seven-tan.vercel.app/" },
-    ],
-  },
-  {
-    ...PROJECTS[2],
-    dir:  "feedme/",
-    lang: "Kotlin",
-    one:  "meal-sharing Android app",
-    role: "mobile · SCRUM team · EPFL",
-    sig:  "scrum.sprint() → 2nd place",
-    links: [{ label: "github", url: "https://github.com/feedme-swent-epfl/feedme-android" }],
-  },
-  {
-    ...PROJECTS[3],
-    dir:  "scala-webapp/",
-    lang: "Scala",
-    one:  "full-stack coursework",
-    role: "EPFL · team",
-    sig:  "build(scala)",
-    links: [{ label: "github", url: "https://github.com/0marwa" }],
-  },
-];
+const TERMINAL_EXTRAS: Record<string, TerminalExtras> = {
+  "cittitrip":    { dir: "cittitrip/",    lang: "Next.js",          sig: "plan() → trip" },
+  "rag-chatbot":  { dir: "rag-chatbot/",  lang: "Next.js + Python", sig: "POST /api/chat" },
+  "feedme":       { dir: "feedme/",       lang: "Kotlin",           sig: "scrum.sprint() → 2nd place" },
+  "scala-webapp": { dir: "scala-webapp/", lang: "Scala",            sig: "build(scala)" },
+};
+
+type TerminalProject = Project & TerminalExtras;
+
+const TP: TerminalProject[] = PROJECTS.map((p) => ({
+  ...p,
+  ...(TERMINAL_EXTRAS[p.id] ?? { dir: `${p.id}/`, lang: p.tags[0] ?? "", sig: "" }),
+}));
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const ACCENT      = "#f0b0c4";
@@ -147,7 +79,7 @@ function whoami(): Line[] {
 
 function ls(): Line[] {
   return [
-    ...TP.map((p) => o(pad(p.id, 20) + p.one, "out")),
+    ...TP.map((p) => o(pad(p.id, 20) + p.pitch, "out")),
     o(""),
     o("cat <name> to inspect", "dim"),
     o(""),
@@ -158,7 +90,7 @@ function cat(p: TerminalProject): Line[] {
   return [
     o(""),
     o(p.title, "accent"),
-    o(p.one, "dim"),
+    o(p.pitch, "dim"),
     o(""),
     o(p.description, "out"),
     o(""),
