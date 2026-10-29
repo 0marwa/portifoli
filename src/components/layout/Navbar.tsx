@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { NavLink } from "@/types";
 
 const NAV_LINKS: NavLink[] = [
-  { label: "About", href: "about" },
+  { label: "Me", href: "about" },
   { label: "Projects", href: "projects" },
   { label: "CTF", href: "ctf" },
   { label: "Contact", href: "contact" },
