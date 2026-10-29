@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
+import PageShell from "@/components/layout/PageShell";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -30,7 +31,7 @@ export default function RootLayout({
         className={`${geist.variable} ${acidic.variable} font-sans antialiased text-[#f0ebe0]`}
         style={{ color: "#f0ebe0", background: "transparent" }}
       >
-        {children}
+        <PageShell>{children}</PageShell>
       </body>
     </html>
   );

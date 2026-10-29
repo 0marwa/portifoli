@@ -4,7 +4,7 @@ export default function ProjectCard({ project }: { project: Project }) {
   const meta = [project.context, project.role].filter(Boolean).join(" · ");
 
   return (
-    <article className="flex flex-col rounded-xl border border-white/10 bg-white/[0.02] p-5 transition-colors hover:border-[#f0b0c4]/40 sm:p-6">
+    <article className="flex flex-col rounded-xl border border-white/10 bg-[#0d0d0d]/85 p-5 backdrop-blur-sm transition-colors hover:border-[#f0b0c4]/40 sm:p-6">
       <header>
         <h3 className="text-xl font-semibold tracking-tight">{project.title}</h3>
         <p className="mt-1 text-sm text-[#f0b0c4]/90">{project.pitch}</p>

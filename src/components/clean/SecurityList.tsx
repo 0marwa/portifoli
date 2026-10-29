@@ -3,7 +3,7 @@ import type { CTFWriteup } from "@/types";
 // Compact CTF list. Only rendered when at least one non-draft writeup exists.
 export default function SecurityList({ writeups }: { writeups: CTFWriteup[] }) {
   return (
-    <ul className="divide-y divide-white/10 border-y border-white/10">
+    <ul className="divide-y divide-white/10 rounded-xl border border-white/10 bg-[#0d0d0d]/85 px-5 backdrop-blur-sm">
       {writeups.map((w) => {
         const row = (
           <>

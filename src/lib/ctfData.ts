@@ -54,3 +54,6 @@ export const CTF_WRITEUPS: CTFWriteup[] = [
     draft: true,
   },
 ];
+
+// Non-draft writeups — the only ones clean mode shows.
+export const PUBLISHED_WRITEUPS = CTF_WRITEUPS.filter((w) => !w.draft);
