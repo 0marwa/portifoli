@@ -43,7 +43,7 @@ function InfoBlurb({ id, label, value, position, rotation = 0, glitchDelay = 0 }
             pointerEvents: "none",
           }}
         />
-        <p className="relative z-10 text-sm font-bold uppercase tracking-widest opacity-60">
+        <p className="relative z-10 text-sm leading-snug font-acidic opacity-60">
           {label}
         </p>
         <p className="relative z-10 mt-1 text-xl leading-snug font-acidic">
